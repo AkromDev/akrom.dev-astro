@@ -7,16 +7,18 @@ import Card from '../components/Card.astro';
 import Layout from '../layouts/Layout.astro';
 import ImageGlow from '../components/ImageGlow.astro';
 import Icon from '../components/Icon.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import WorkCard from '../components/WorkCard.astro';
 import { getCollection } from 'astro:content';
 import { getEntry } from 'astro:content';
 import { render } from 'astro:content';
 import { name, openGraph } from 'spectre:globals';
 
-const [posts, projects, about, workExperience, quickInfo, socials] = await Promise.all([
+const [posts, projects, about, work, quickInfo, socials] = await Promise.all([
 	getCollection('posts', (post) => post.data.draft !== true),
 	getCollection('projects'),
 	getEntry('other', 'about'),
-	getCollection('workExperience'),
+	getCollection('work'),
 	getCollection('quickInfo'),
 	getCollection('socials')
 ]);
@@ -73,7 +75,7 @@ const { Content: About } = await render(about!);
 				<h2>Latest Posts</h2>
 			</div>
 			<div class="content-container">
-				{posts.sort((a, b) => b.data.createdAt.getTime() - a.data.createdAt.getTime()).slice(0, 2).map((post) => (
+				{posts.sort((a, b) => b.data.createdAt.getTime() - a.data.createdAt.getTime()).slice(0, 3).map((post) => (
 					<a href={`/blog/${post.id}`} class="post-container">
 						<div class="post-header">
 							<h3>{post.data.title}</h3>
@@ -83,6 +85,9 @@ const { Content: About } = await render(about!);
 					</a>
 				))}
 			</div>
+			<div class="see-all-container">
+				<a href="/blog" class="see-all-link">See all posts →</a>
+			</div>
 		</Card>
 		<Card>
 			<div class="header-container">
@@ -90,15 +95,12 @@ const { Content: About } = await render(about!);
 				<h2>Latest Projects</h2>
 			</div>
 			<div class="content-container">
-				{projects.sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 2).map((project) => (
-					<a href={`/projects/${project.id}`} class="post-container">
-						<div class="post-header">
-							<h3>{project.data.title}</h3>
-							<span class="post-date">{project.data.date.toLocaleDateString()}</span>
-						</div>
-						<span>{project.data.description}</span>
-					</a>
+				{projects.sort((a, b) => a.data.id - b.data.id).slice(0, 4).map((project) => (
+					<ProjectCard project={project} />
 				))}
+			</div>
+			<div class="see-all-container">
+				<a href="/projects" class="see-all-link">See all projects →</a>
 			</div>
 		</Card>
 		<Card>
@@ -106,16 +108,39 @@ const { Content: About } = await render(about!);
 				<Icon type='lucide' name="briefcase-business" width={24} height={24} class='glow-icon' />
 				<h2>Work Experience</h2>
 			</div>
-			<div class="work-experience-container">
-				{workExperience.reverse().map((entry) => (
-					<div class="work-experience-entry">
-						<span class="work-experience-duration">{entry.data.duration}</span>
-						<h3 class="work-experience-company">{entry.data.company}</h3>
-						<span class="work-experience-role">{entry.data.title}</span>
-						<p class="work-experience-desc">{entry.data.description}</p>
-					</div>
-				))}
+			<div class="content-container">
+				{work.sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4).map((workItem) => <WorkCard work={workItem} />)}
+			</div>
+			<div class="see-all-container">
+				<a href="/work" class="see-all-link">See all work experience →</a>
 			</div>
 		</Card>
 	</div>
 </Layout>
+
+<style>
+	.see-all-container {
+		padding-top: 0.75rem;
+		margin-top: 0.75rem;
+		display: flex;
+	}
+
+	.see-all-link {
+		font-size: 0.875rem;
+		color: var(--primary-light);
+		text-decoration: none;
+		transition: color 0.2s ease;
+		padding: 0.375rem 0.75rem;
+		border-radius: 0.375rem;
+		background: transparent;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+	
+	.see-all-link:hover {
+		background: var(--primary);
+		color: black;
+		text-decoration: none;
+	}
+</style>

@@ -1,7 +1,7 @@
 import { file, glob } from "astro/loaders";
 import { defineCollection, z, reference } from "astro:content";
-import type { icons as lucideIcons } from '@iconify-json/lucide/icons.json';
-import type { icons as simpleIcons } from '@iconify-json/simple-icons/icons.json';
+import type simpleIconsData from '@iconify-json/simple-icons';
+import type lucideIconsData from '@iconify-json/lucide';
 
 const other = defineCollection({
   loader: glob({ base: "src/content/other", pattern: "**/*.{md,mdx}" }),
@@ -9,12 +9,12 @@ const other = defineCollection({
 
 const lucideIconSchema = z.object({
   type: z.literal("lucide"),
-  name: z.custom<keyof typeof lucideIcons>(),
+  name: z.custom<keyof typeof lucideIconsData.icons>(), 
 });
 
 const simpleIconSchema = z.object({
   type: z.literal("simple-icons"),
-  name: z.custom<keyof typeof simpleIcons>(),
+  name: z.custom<keyof typeof simpleIconsData.icons>(),
 });
 
 const quickInfo = defineCollection({
@@ -36,14 +36,19 @@ const socials = defineCollection({
   })
 });
 
-const workExperience = defineCollection({
-  loader: file("src/content/work.json"),
+const work = defineCollection({
+  loader: glob({ base: "src/content/work", pattern: "**/*.{md,mdx}" }),
   schema: z.object({
-    id: z.number(),
     title: z.string(),
     company: z.string(),
     duration: z.string(),
+    date: z.coerce.date(),
     description: z.string(),
+    website: z.string().url(),
+    location: z.string(),
+    toptal: z.boolean().optional().default(false),
+    id: z.number().optional(),
+    tags: z.array(z.string()).optional(),
   })
 });
 
@@ -74,7 +79,7 @@ const projects = defineCollection({
   schema: ({ image }) => z.object({
     title: z.string(),
     description: z.string(),
-    date: z.coerce.date(),
+    id: z.number(),
     image: image(),
     link: z.string().url().optional(),
     info: z.array(
@@ -87,4 +92,4 @@ const projects = defineCollection({
   })
 });
 
-export const collections = { tags, posts, projects, other, quickInfo, socials, workExperience };
+export const collections = { tags, posts, projects, other, quickInfo, socials, work };

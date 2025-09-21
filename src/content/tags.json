@@ -1,5 +1,14 @@
 [
   {
     "id": "guide"
+  },
+  {
+    "id": "student"
+  },
+  {
+    "id": "tips"
+  },
+  {
+    "id": "dev"
   }
 ]

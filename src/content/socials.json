@@ -2,10 +2,37 @@
   {
     "id": 1,
     "icon": {
-      "type": "lucide",
+      "type": "simple-icons",
+      "name": "linkedin"
+    },
+    "text": "LinkedIn",
+    "link": "https://www.linkedin.com/in/akromdev/"
+  },
+  {
+    "id": 2,
+    "icon": {
+      "type": "simple-icons",
       "name": "github"
     },
     "text": "GitHub",
-    "link": "https://github.com/louisescher/spectre"
+    "link": "https://github.com/AkromDev"
+  },
+  {
+    "id": 3,
+    "icon": {
+      "type": "simple-icons",
+      "name": "x"
+    },
+    "text": "Twitter",
+    "link": "https://x.com/Akromdev"
+  },
+  {
+    "id": 4,
+    "icon": {
+      "type": "simple-icons",
+      "name": "codesandbox"
+    },
+    "text": "CodeSandbox",
+    "link": "https://codesandbox.io/u/AkromDev"
   }
 ]

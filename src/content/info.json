@@ -3,17 +3,32 @@
     "id": 1,
     "icon": {
       "type": "lucide",
-      "name": "cake"
+      "name": "map-pin"
     },
-    "text": "1 year old"
+    "text": "Namangan, Uzbekistan"
   },
   {
     "id": 2,
     "icon": {
       "type": "lucide",
-      "name": "earth"
+      "name": "briefcase"
     },
-    "type": "lucide",
-    "text": "Made in Germany"
+    "text": "Senior Full-Stack Engineer"
+  },
+  {
+    "id": 3,
+    "icon": {
+      "type": "lucide",
+      "name": "graduation-cap"
+    },
+    "text": "Sejong University Graduate"
+  },
+  {
+    "id": 4,
+    "icon": {
+      "type": "lucide",
+      "name": "mail"
+    },
+    "text": "akromdev@gmail.com"
   }
 ]

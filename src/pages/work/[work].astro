@@ -1,0 +1,221 @@
+---
+import '../../styles/article.css';
+
+import { getCollection } from 'astro:content';
+import { render } from 'astro:content';
+
+import Layout from '../../layouts/Layout.astro';
+import Card from '../../components/Card.astro';
+import Icon from '../../components/Icon.astro';
+
+export async function getStaticPaths() {
+	const work = await getCollection('work');
+	return work.map((entry) => ({
+		params: { work: entry.id },
+		props: entry,
+	}));
+}
+
+const work = Astro.props;
+const { Content } = await render(work);
+---
+
+<Layout title={`${work.data.title} at ${work.data.company}`} description={work.data.description}>
+	<div class="left" slot="left">
+		<Card>
+			<h2 class="no-mt">Quick Info</h2>
+			<ul class="overview-list">
+				<li>
+					<Icon type="lucide" name="briefcase" width={24} height={24} class="glow-icon" />
+					<span>{work.data.company}</span>
+				</li>
+				<li>
+					<Icon type="lucide" name="clock" width={24} height={24} class="glow-icon" />
+					<span>{work.data.duration}</span>
+				</li>
+				<li>
+					<Icon type="lucide" name="map-pin" width={24} height={24} class="glow-icon" />
+					<span>{work.data.location}</span>
+				</li>
+				{work.data.toptal && (
+					<li>
+						<svg height="24" viewBox="0 0 23 32" width="24" xmlns="http://www.w3.org/2000/svg" class="glow-icon" aria-labelledby="toptal-emblem-icon-label-sidebar">
+							<title id="toptal-emblem-icon-label-sidebar">Toptal emblem</title>
+							<path d="m1323.82532 2153 7.29254 7.29278c.05306.04705.10612.09998.16507.15879l6.36107 6.36354-10.34632 10.29222 4.73985 4.74031-3.17169 3.15236-7.24537-7.24573c-.08254-.07645-.17097-.16467-.2594-.25289l-6.36107-6.35766 10.31095-10.25105-4.69859-4.69914zm4.61606 11.42731c-.09433-.02941-.18865-.02941-.28298 0-.09433.02353-.17686.07058-.34193.23525l-5.88945 5.86363c-.17096.17056-.21223.24701-.2417.34111-.02948.0941-.02948.1882 0 .2823.02947.09411.07664.17644.2417.34112l1.86883 1.87024c.17096.17056.2476.21173.34193.24114.09432.0294.18865.0294.28297 0 .09433-.02941.17686-.07058.33604-.23526l5.88944-5.86362c.17097-.17056.21224-.24702.24171-.34112.02948-.0941.02948-.1882 0-.2823-.02358-.0941-.07074-.17644-.23581-.34111l-1.86882-1.87025c-.17097-.17055-.24761-.21172-.34193-.24113z" fill="currentColor" fill-rule="evenodd" transform="translate(-1315 -2153)"></path>
+						</svg>
+						<span>Via Toptal</span>
+					</li>
+				)}
+				<li>
+					<a href={work.data.website} class="work-action-item" target="_blank" rel="noopener noreferrer">
+						<Icon type="lucide" name="external-link" width={24} height={24} class="glow-icon" />
+						<span>Visit Website</span>
+					</a>
+				</li>
+			</ul>
+		</Card>
+	</div>
+	
+	<article slot="right" data-pagefind-body>
+		<Card>
+			<div class="work-header">
+				<h1 class="work-title">{work.data.title}</h1>
+				<div class="work-company-line">
+					<a href={work.data.website} class="work-company-link" target="_blank" rel="noopener noreferrer">
+						{work.data.company}
+					</a>
+					{(work.data.toptal || work.data.location) && (
+						<div class="work-meta-indicator">
+							<svg viewBox="0 0 16 16" class="meta-dot" aria-hidden="true">
+								<path d="M8 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z"></path>
+							</svg>
+							{work.data.toptal ? (
+								<div class="toptal-section">
+									<svg height="16" viewBox="0 0 23 32" width="16" xmlns="http://www.w3.org/2000/svg" class="toptal-icon" aria-labelledby="toptal-emblem-icon-label-main">
+										<title id="toptal-emblem-icon-label-main">Toptal emblem</title>
+										<path d="m1323.82532 2153 7.29254 7.29278c.05306.04705.10612.09998.16507.15879l6.36107 6.36354-10.34632 10.29222 4.73985 4.74031-3.17169 3.15236-7.24537-7.24573c-.08254-.07645-.17097-.16467-.2594-.25289l-6.36107-6.35766 10.31095-10.25105-4.69859-4.69914zm4.61606 11.42731c-.09433-.02941-.18865-.02941-.28298 0-.09433.02353-.17686.07058-.34193.23525l-5.88945 5.86363c-.17096.17056-.21223.24701-.2417.34111-.02948.0941-.02948.1882 0 .2823.02947.09411.07664.17644.2417.34112l1.86883 1.87024c.17096.17056.2476.21173.34193.24114.09432.0294.18865.0294.28297 0 .09433-.02941.17686-.07058.33604-.23526l5.88944-5.86362c.17097-.17056.21224-.24702.24171-.34112.02948-.0941.02948-.1882 0-.2823-.02358-.0941-.07074-.17644-.23581-.34111l-1.86882-1.87025c-.17097-.17055-.24761-.21172-.34193-.24113z" fill="currentColor" fill-rule="evenodd" transform="translate(-1315 -2153)"></path>
+									</svg>
+									<span class="toptal-text">Via Toptal</span>
+								</div>
+							) : (
+								<div class="location-section">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="location-icon">
+										<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+										<circle cx="12" cy="10" r="3"></circle>
+									</svg>
+									<span class="location-text">{work.data.location}</span>
+								</div>
+							)}
+						</div>
+					)}
+				</div>
+			</div>
+		</Card>
+		
+		<Card>
+			<div class="work-content">
+				<Content />
+			</div>
+			<hr class="end-of-article" />
+			<a href="/work" class="block-link" data-pagefind-ignore>← Back to work list</a>
+		</Card>
+	</article>
+</Layout>
+
+<style>
+	.work-action-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.work-header {
+		margin-bottom: 1rem;
+	}
+
+	.work-title {
+		font-size: 2rem;
+		font-weight: 700;
+		margin: 0 0 1rem 0;
+		color: #ffffff;
+		line-height: 1.2;
+	}
+
+	.work-company-line {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.work-company-link {
+		color: var(--primary);
+		text-decoration: none;
+		font-size: 1.125rem;
+		font-weight: 600;
+		transition: color 0.2s ease;
+	}
+
+	.work-company-link:hover {
+		text-decoration: underline;
+	}
+
+	.work-meta-indicator {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #c7c7c7;
+		font-size: 0.875rem;
+	}
+
+	.meta-dot {
+		width: 16px;
+		height: 16px;
+		fill: #9ca3af;
+		flex-shrink: 0;
+	}
+
+	.toptal-section {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.toptal-icon {
+		width: 16px;
+		height: 16px;
+		opacity: 0.8;
+	}
+
+	.toptal-text {
+		font-size: 0.875rem;
+	}
+
+	.location-section {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.location-icon {
+		width: 16px;
+		height: 16px;
+		color: var(--text-secondary);
+		opacity: 0.8;
+	}
+
+	.location-text {
+		font-size: 0.875rem;
+		color: var(--text-secondary);
+	}
+
+	.work-content {
+		line-height: 1.7;
+		color: #ffffff;
+	}
+
+	.work-content h2 {
+		color: #ffffff;
+		margin-top: 1.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.work-content p,
+	.work-content li {
+		color: #c7c7c7;
+		margin-bottom: 1rem;
+	}
+
+	.work-content ul {
+		margin: 1rem 0;
+		padding-left: 1.5rem;
+	}
+
+	@media (max-width: 640px) {
+		.work-title {
+			font-size: 1.75rem;
+		}
+	}
+</style>

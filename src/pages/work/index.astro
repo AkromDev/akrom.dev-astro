@@ -1,0 +1,58 @@
+---
+import '../../styles/article-list.css';
+
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import Card from '../../components/Card.astro';
+import Icon from '../../components/Icon.astro';
+import WorkCard from '../../components/WorkCard.astro';
+
+const work = await getCollection('work');
+const sortedWork = work.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+---
+
+<Layout title="Work Experience" description="My professional work experience and career journey">
+	<div class="layout-grid-left" slot="left">
+		<Card class="flex-col-card">
+			<h2 class="no-mt">Stats</h2>
+			<div class="stats-div">
+				<div class="stat">
+					<h3 class="text-glow">{work.length}</h3>
+					<span>Work Experience{work.length > 1 ? 's' : ''}</span>
+				</div>
+			</div>
+		</Card>
+	</div>
+	<div class="layout-grid-right" slot="right">
+		<Card>
+			<div class="header-container">
+				<Icon type='lucide' name="briefcase-business" width={24} height={24} class='glow-icon' />
+				<h2>Work Experience</h2>
+			</div>
+			<div class="content-container">
+				{sortedWork.map((work) => <WorkCard work={work} />)}
+			</div>
+		</Card>
+	</div>
+</Layout>
+
+<style>
+	.stats-div {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.stat {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.stat h3 {
+		font-size: 2em;
+		margin: 0;
+		margin-bottom: .5rem;
+	}
+</style>
+
+
