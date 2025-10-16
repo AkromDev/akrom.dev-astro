@@ -18,11 +18,11 @@ const path = Astro.url.pathname;
     <li>
       <a href="/work" class:list={{ active: path.startsWith('/work') }}>Work</a>
     </li>
-    <li class="nav-separator">/</li>
-    <li>
+    <!-- <li class="nav-separator">/</li> -->
+    <!-- <li>
       <input id="search" type="text" placeholder="Search (Ctrl+K)" />
       <div id="search-results"></div>
-    </li>
+    </li> -->
   </ul>
   <button class="mobile-nav-toggle">
     <Icon type="lucide" name="menu" width={24} height={24} class="menu-closed" />
