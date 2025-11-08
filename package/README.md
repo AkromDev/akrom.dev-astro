@@ -1,4 +1,4 @@
-# Spectre (Integration)
+# Custom (Integration)
 
 This package acts as an integration which you can pass various configurations to. It then provides these options to the pages via [virtual modules](https://vite.dev/guide/api-plugin.html#virtual-modules-convention).
 
