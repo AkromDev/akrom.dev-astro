@@ -5,7 +5,7 @@ import { getCollection } from "astro:content";
 import Card from "../components/Card.astro";
 import Icon from "../components/Icon.astro";
 import Layout from "../layouts/Layout.astro";
-import { openGraph } from 'spectre:globals';
+import { openGraph } from 'theme:globals';
 
 const posts = await getCollection('posts', (post) => post.data.draft !== true);
 const tags = posts.flatMap((post) => post.data.tags.map((tag) => tag.id));

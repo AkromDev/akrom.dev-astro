@@ -109,6 +109,10 @@ export const optionsSchema = z.object({
      * Open Graph meta tags for the projects page.
      */
     projects: openGraphOptionsSchema,
+    /**
+     * Open Graph meta tags for the work page.
+     */
+    work: openGraphOptionsSchema,
   }),
   /**
    * All of this information can be find on [giscus' config page](https://giscus.app) under "Enable giscus" after entering all information.
@@ -135,7 +139,7 @@ export default function integration(options: z.infer<typeof optionsSchema>): Ast
 
   const validatedOptions = optionsSchema.parse(options);
 
-	const globals = viteVirtualModulePluginBuilder('spectre:globals', 'spectre-theme-globals', `
+	const globals = viteVirtualModulePluginBuilder('theme:globals', 'theme-globals', `
     export const name = ${JSON.stringify(validatedOptions.name)};
     export const themeColor = ${JSON.stringify(validatedOptions.themeColor ?? '#8c5cf5')};
     export const twitterHandle = ${JSON.stringify(validatedOptions.twitterHandle)};
@@ -143,12 +147,13 @@ export default function integration(options: z.infer<typeof optionsSchema>): Ast
       home: ${JSON.stringify(validatedOptions.openGraph.home)},
       blog: ${JSON.stringify(validatedOptions.openGraph.blog)},
       projects: ${JSON.stringify(validatedOptions.openGraph.projects)},
+      work: ${JSON.stringify(validatedOptions.openGraph.work)},
     };
     export const giscus = ${validatedOptions.giscus ? JSON.stringify(validatedOptions.giscus) : 'false'};
   `);
 
 	return {
-		name: 'spectre-theme',
+		name: 'custom-theme',
 		hooks: {
 			'astro:config:setup': ({ updateConfig }) => {
 				updateConfig({

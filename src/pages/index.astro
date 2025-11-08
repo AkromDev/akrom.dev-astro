@@ -12,7 +12,7 @@ import WorkCard from '../components/WorkCard.astro';
 import { getCollection } from 'astro:content';
 import { getEntry } from 'astro:content';
 import { render } from 'astro:content';
-import { name, openGraph } from 'spectre:globals';
+import { name, openGraph } from 'theme:globals';
 
 const [posts, projects, about, work, quickInfo, socials] = await Promise.all([
 	getCollection('posts', (post) => post.data.draft !== true),
@@ -34,8 +34,8 @@ const { Content: About } = await render(about!);
 >
 	<div class="layout-grid-left" slot="left">
 		<Card class="flex-col-card">
-			<ImageGlow quality={100} width={80} height={80} src={ProfilePicture} alt="Louis looking out of a window" loading='eager' />
-			<h2>{name}</h2>
+			<ImageGlow quality={100} width={80} height={80} src={ProfilePicture} alt="Profile picture" loading='eager' />
+			<h2>Akramjon</h2>
 			<ul class="overview-list">
 				{quickInfo.map((info) => (
 					<li>

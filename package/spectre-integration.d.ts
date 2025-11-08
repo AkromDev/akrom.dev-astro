@@ -22,6 +22,10 @@ interface OpenGraph {
    * Data for the projects page.
    */
   projects: OpenGraphInfo;
+  /**
+   * Data for the work page.
+   */
+  work: OpenGraphInfo;
 }
 
 interface GiscusOptions {
@@ -71,9 +75,9 @@ interface GiscusOptions {
   commentsInput: 'bottom' | 'top';
 }
 
-declare module 'spectre:globals' {
+declare module 'theme:globals' {
   /**
-   * The name that should be displayed on the main page.
+   * The name of the site.
    */
   export const name: string;
   /**

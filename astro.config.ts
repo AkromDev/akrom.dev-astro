@@ -4,9 +4,9 @@ import { defineConfig } from 'astro/config';
 import expressiveCode from 'astro-expressive-code';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
-import spectre from './package/src';
+import themeIntegration from './package/src';
 
-import { spectreDark } from './src/ec-theme';
+import { darkTheme } from './src/ec-theme';
 
 const {
   GISCUS_REPO,
@@ -26,12 +26,12 @@ const config = defineConfig({
   output: 'static',
   integrations: [
     expressiveCode({
-      themes: [spectreDark],
+      themes: [darkTheme],
     }),
     mdx(),
     sitemap(),
-    spectre({
-      name: 'Akramjon',
+    themeIntegration({
+      name: 'akrom.dev',
       openGraph: {
         home: {
           title: 'Personal website of Akrom',
@@ -43,6 +43,10 @@ const config = defineConfig({
         },
         projects: {
           title: 'Projects'
+        },
+        work: {
+          title: 'Work',
+          description: 'My work experience'
         }
       },
       giscus: {
