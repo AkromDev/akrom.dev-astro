@@ -22,7 +22,7 @@ const {
 
 // https://astro.build/config
 const config = defineConfig({
-  site: 'https://spectre.louisescher.dev',
+  site: 'https://akrom.dev',
   output: 'static',
   integrations: [
     expressiveCode({
@@ -31,7 +31,7 @@ const config = defineConfig({
     mdx(),
     sitemap(),
     spectre({
-      name: 'akrom.dev',
+      name: 'Akramjon',
       openGraph: {
         home: {
           title: 'Personal website of Akrom',
