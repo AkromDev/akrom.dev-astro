@@ -95,7 +95,7 @@ const { Content: About } = await render(about!);
 				<h2>Latest Projects</h2>
 			</div>
 			<div class="content-container">
-				{projects.sort((a, b) => a.data.id - b.data.id).slice(0, 4).map((project) => (
+				{projects.sort((a, b) => a.data.id - b.data.id).slice(0, 3).map((project) => (
 					<ProjectCard project={project} />
 				))}
 			</div>
