@@ -6,7 +6,6 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import spectre from './package/src';
 
-import node from '@astrojs/node';
 import { spectreDark } from './src/ec-theme';
 
 const {
@@ -58,10 +57,7 @@ const config = defineConfig({
         lang: GISCUS_LANG,
       }
     })
-  ],
-  adapter: node({
-    mode: 'standalone'
-  })
+  ]
 });
 
 export default config;
