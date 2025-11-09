@@ -109,7 +109,7 @@ const { Content: About } = await render(about!);
 				<h2>Work Experience</h2>
 			</div>
 			<div class="content-container">
-				{work.sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4).map((workItem) => <WorkCard work={workItem} />)}
+				{work.sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 3).map((workItem) => <WorkCard work={workItem} />)}
 			</div>
 			<div class="see-all-container">
 				<a href="/work" class="see-all-link">See all work experience →</a>
