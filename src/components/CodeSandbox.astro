@@ -1,0 +1,140 @@
+---
+import Sandbox from "./Sandbox";
+
+import type { SandpackPredefinedTemplate } from "@codesandbox/sandpack-react";
+
+interface Props {
+  files: Record<string, string>;
+  template?: SandpackPredefinedTemplate;
+  showLineNumbers?: boolean;
+  editorHeight?: number;
+  activeFile?: string;
+  visibleFiles?: string[];
+  dependencies?: Record<string, string>;
+}
+
+const { 
+  files, 
+  template = "react",
+  showLineNumbers = true,
+  editorHeight = 420,
+  activeFile,
+  visibleFiles,
+  dependencies = {},
+} = Astro.props;
+
+const placeholderHeight = editorHeight;
+---
+
+<div class="sandbox-container" style={`min-height: ${placeholderHeight}px;`}>
+  <div class="sandbox-loading">
+    <div class="sandbox-loading-tabs">
+      <span class="tab-placeholder"></span>
+      <span class="tab-placeholder"></span>
+    </div>
+    <div class="sandbox-loading-content">
+      <div class="loading-shimmer"></div>
+    </div>
+  </div>
+  <Sandbox
+    client:only="react"
+    files={files}
+    template={template}
+    showLineNumbers={showLineNumbers}
+    editorHeight={editorHeight}
+    activeFile={activeFile}
+    visibleFiles={visibleFiles}
+    dependencies={dependencies}
+  />
+</div>
+
+<style>
+  .sandbox-container {
+    margin: 1.5rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #30363d;
+    background: #282a36;
+    position: relative;
+  }
+
+  .sandbox-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sandbox-loading-tabs {
+    display: flex;
+    gap: 0;
+    padding: 8px 12px;
+    background: #21222c;
+    border-bottom: 1px solid #30363d;
+  }
+
+  .tab-placeholder {
+    width: 70px;
+    height: 28px;
+    background: #30363d;
+    border-radius: 4px;
+    margin-right: 8px;
+  }
+
+  .sandbox-loading-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .loading-shimmer {
+    flex: 1;
+    background: linear-gradient(
+      90deg,
+      #282a36 0%,
+      #30363d 50%,
+      #282a36 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Hide loading state once Sandpack renders */
+  .sandbox-container:has(.sp-wrapper) {
+    background: transparent;
+    border: none;
+  }
+
+  .sandbox-container:has(.sp-wrapper) .sandbox-loading {
+    display: none;
+  }
+
+  /* Remove wrapper styles from inner Sandbox */
+  .sandbox-container :global(.sandpack-wrapper) {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* Better contrast for Sandpack action buttons */
+  .sandbox-container :global(.sp-preview-actions button),
+  .sandbox-container :global(.sp-preview-actions a) {
+    opacity: 1;
+    color: #e4e4e7;
+  }
+
+  .sandbox-container :global(.sp-preview-actions button:hover),
+  .sandbox-container :global(.sp-preview-actions a:hover) {
+    color: #fff;
+  }
+</style>
+

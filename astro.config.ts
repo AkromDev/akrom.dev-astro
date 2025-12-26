@@ -4,6 +4,7 @@ import { defineConfig } from 'astro/config';
 import expressiveCode from 'astro-expressive-code';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
+import react from '@astrojs/react';
 import themeIntegration from './package/src';
 
 import { darkTheme } from './src/ec-theme';
@@ -30,6 +31,7 @@ const config = defineConfig({
     }),
     mdx(),
     sitemap(),
+    react(),
     themeIntegration({
       name: 'akrom.dev',
       openGraph: {

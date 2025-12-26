@@ -1,0 +1,524 @@
+---
+title: "React Forms: From Vanilla to Production-Ready"
+description: "Different patterns for implementing form validation and error handling in React."
+image: "../assets/blog/forms.jpg"
+createdAt: 12-27-2025
+draft: false
+tags:
+  - react
+  - forms
+  - typescript
+  - nextjs
+  - zod
+---
+
+import CodeSandbox from "../../components/CodeSandbox.astro";
+
+Forms look simple until you build one. Then come validation rules, error states, loading indicators, and edge cases.
+
+This guide starts with a basic form and progressively adds functionality. Each section builds on the last, highlighting exactly what changes.
+
+## The Base Form
+
+We'll build a registration form with name, email, and password fields. Right now it does nothing. The button submits and refreshes the page:
+
+<CodeSandbox 
+  files={{
+    "/App.js": `import { PasswordInput } from "./components";\nimport "./styles.css";\n\nexport default function RegistrationForm() {\n  return (\n    <form className="form">\n      <input name="name" placeholder="Name" className="input" />\n      <input name="email" placeholder="Email" className="input" />\n      <PasswordInput name="password" />\n      <button type="submit" className="button">Create Account</button>\n    </form>\n  );\n}`,
+    "/components.js": `import { useState, forwardRef } from "react";\n\nconst EyeIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>\n    <circle cx="12" cy="12" r="3"/>\n  </svg>\n);\n\nconst EyeOffIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>\n    <line x1="1" y1="1" x2="23" y2="23"/>\n  </svg>\n);\n\nexport function PasswordInput({ name = "password", placeholder = "Password", ...props }) {\n  const [show, setShow] = useState(false);\n  return (\n    <div className="input-wrapper">\n      <input\n        name={name}\n        type={show ? "text" : "password"}\n        placeholder={placeholder}\n        className="input input-password"\n        {...props}\n      />\n      <button type="button" className="toggle-password" onClick={() => setShow(!show)}>\n        {show ? <EyeOffIcon /> : <EyeIcon />}\n      </button>\n    </div>\n  );\n}\n\nexport const PasswordInputWithRef = forwardRef(function PasswordInput({ placeholder = "Password", ...props }, ref) {\n  const [show, setShow] = useState(false);\n  return (\n    <div className="input-wrapper">\n      <input\n        ref={ref}\n        type={show ? "text" : "password"}\n        placeholder={placeholder}\n        className="input input-password"\n        {...props}\n      />\n      <button type="button" className="toggle-password" onClick={() => setShow(!show)}>\n        {show ? <EyeOffIcon /> : <EyeIcon />}\n      </button>\n    </div>\n  );\n});`,
+    "/styles.css": `*, *::before, *::after {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #0a0a0a;\n  font-family: 'Geist', sans-serif;\n}\n\n.form {\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n  width: 100%;\n  max-width: 320px;\n  min-width: 300px;\n  padding: 24px;\n  background: #18181b;\n  border-radius: 12px;\n  overflow: hidden;\n}\n\n.field {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n}\n\n.input-wrapper {\n  position: relative;\n  display: flex;\n  align-items: center;\n}\n\n.input {\n  width: 100%;\n  padding: 10px 14px;\n  border: 1px solid #3f3f46;\n  border-radius: 8px;\n  background: #27272a;\n  color: #fafafa;\n  font-size: 14px;\n  font-family: inherit;\n  transition: border-color 0.2s, box-shadow 0.2s;\n}\n\n.input-password {\n  padding-right: 42px;\n}\n\n.input:focus {\n  outline: none;\n  border-color: #3b82f6;\n  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);\n}\n\n.input::placeholder {\n  color: #71717a;\n}\n\n.toggle-password {\n  position: absolute;\n  right: 12px;\n  background: none;\n  border: none;\n  padding: 0;\n  cursor: pointer;\n  color: #71717a;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n.toggle-password:hover {\n  color: #a1a1aa;\n}\n\n.error {\n  color: #ef4444;\n  font-size: 12px;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\n\n.button {\n  width: 100%;\n  padding: 12px 16px;\n  background: #2563eb;\n  color: #fff;\n  border: none;\n  border-radius: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  font-family: inherit;\n  cursor: pointer;\n  transition: background 0.2s;\n  margin-top: 4px;\n}\n\n.button:hover {\n  background: #1d4ed8;\n}\n\n.button:disabled {\n  background: #3f3f46;\n  color: #71717a;\n  cursor: not-allowed;\n}`,
+  }}
+  activeFile="/App.js"
+/>
+
+The `components.js` and `styles.css` files won't change throughout this guide. They're hidden in later examples so you can focus on the form logic.
+
+We'll explore different ways to make this form work.
+
+---
+
+## 1. Uncontrolled Forms
+
+In uncontrolled forms, React doesn't manage the input values. The browser handles them natively, and we only read the values on submit using `FormData`. This is the simplest approach.
+
+First, add state for errors and a submit handler that extracts values and validates them:
+
+```jsx ins={2} ins={4-22} del={25} ins={26}
+export default function RegistrationForm() {
+  const [errors, setErrors] = useState({});
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const values = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      password: formData.get("password"),
+    };
+
+    const newErrors = validateForm(values);
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    e.currentTarget.reset(); // Reset form
+    setErrors({}); // Clear errors
+    setTimeout(() => alert(`Welcome, ${values.name}!`), 300); // Mimics API submission
+  }
+
+  return (
+    <form className="form">
+    <form onSubmit={handleSubmit} className="form">
+      {/* ... */}
+    </form>
+  );
+}
+```
+
+**How it works:**
+
+- `FormData` extracts values on submit, no need to track every keystroke
+- `validateForm()` returns `{ field: "message" }` for invalid fields (or empty object if valid)
+- Errors persist while typing and only update on resubmit (we will fix this in the next section)
+- Only `errors` needs state, React re-renders to display them when validation fails
+
+Now display error messages below each input:
+
+```jsx ins={11} ins={13} ins={15}
+export default function RegistrationForm() {
+  const [errors, setErrors] = useState({});
+
+  function handleSubmit(e) {
+    // ...
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="form">
+      <input name="name" placeholder="Name" className="input" />
+      {errors.name && <span className="error">{errors.name}</span>}
+      <input name="email" placeholder="Email" className="input" />
+      {errors.email && <span className="error">{errors.email}</span>}
+      <PasswordInput name="password" />
+      {errors.password && <span className="error">{errors.password}</span>}
+      <button type="submit" className="button">Create Account</button>
+    </form>
+  );
+}
+```
+
+This approach is minimal with just one `useState` and a submit handler. Note that users won't see errors until they click submit, and form doesn't get re-validated until they submit again.
+
+View the full code below and try it out:
+
+<CodeSandbox 
+  files={{
+    "/App.js": `import { useState } from "react";\nimport { PasswordInput } from "./components";\nimport { validateForm } from "./validate";\nimport "./styles.css";\n\nexport default function RegistrationForm() {\n  const [errors, setErrors] = useState({});\n\n  function handleSubmit(e) {\n    e.preventDefault();\n    const formData = new FormData(e.currentTarget);\n\n    const values = {\n      name: formData.get("name"),\n      email: formData.get("email"),\n      password: formData.get("password"),\n    };\n\n    const newErrors = validateForm(values);\n\n    if (Object.keys(newErrors).length > 0) {\n      setErrors(newErrors);\n      return;\n    }\n\n    e.currentTarget.reset(); // Reset form\n    setErrors({}); // Clear errors\n    setTimeout(() => alert(\`Welcome, \${values.name}!\`), 300); // Mimics API submission\n  }\n\n  return (\n    <form onSubmit={handleSubmit} className="form">\n      <input name="name" placeholder="Name" className="input" />\n      {errors.name && <span className="error">{errors.name}</span>}\n      <input name="email" type="email" placeholder="Email" className="input" />\n      {errors.email && <span className="error">{errors.email}</span>}\n      <PasswordInput name="password" placeholder="Password" />\n      {errors.password && <span className="error">{errors.password}</span>}\n      <button type="submit" className="button">Create Account</button>\n    </form>\n  );\n}`,
+    "/validate.js": `export function validateForm(values) {\n  const errors = {};\n\n  if (!values.name || values.name.length < 2) {\n    errors.name = "Name must be at least 2 characters";\n  }\n\n  if (!values.email || !values.email.includes("@")) {\n    errors.email = "Please enter a valid email";\n  }\n\n  if (!values.password || values.password.length < 8) {\n    errors.password = "Password must be at least 8 characters";\n  } else if (!/[A-Z]/.test(values.password)) {\n    errors.password = "Password must contain an uppercase letter";\n  } else if (!/[0-9]/.test(values.password)) {\n    errors.password = "Password must contain a number";\n  }\n\n  return errors;\n}`,
+    "/components.js": `import { useState } from "react";\n\nexport const EyeIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>\n    <circle cx="12" cy="12" r="3"/>\n  </svg>\n);\n\nconst EyeOffIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>\n    <line x1="1" y1="1" x2="23" y2="23"/>\n  </svg>\n);\n\nexport function PasswordInput({ name = "password", placeholder = "Password", ...props }) {\n  const [show, setShow] = useState(false);\n  return (\n    <div className="input-wrapper">\n      <input\n        name={name}\n        type={show ? "text" : "password"}\n        placeholder={placeholder}\n        className="input input-password"\n        {...props}\n      />\n      <button\n        type="button"\n        className="toggle-password"\n        onClick={() => setShow(!show)}\n      >\n        {show ? <EyeOffIcon /> : <EyeIcon />}\n      </button>\n    </div>\n  );\n}`,
+    "/styles.css": `*, *::before, *::after {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #0a0a0a;\n  font-family: 'Geist', sans-serif;\n}\n\n.form {\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n  width: 100%;\n  max-width: 320px;\n  min-width: 300px;\n  padding: 24px;\n  background: #18181b;\n  border-radius: 12px;\n  overflow: hidden;\n}\n\n.input-wrapper {\n  position: relative;\n  display: flex;\n  align-items: center;\n}\n\n.input {\n  width: 100%;\n  padding: 10px 14px;\n  border: 1px solid #3f3f46;\n  border-radius: 8px;\n  background: #27272a;\n  color: #fafafa;\n  font-size: 14px;\n  font-family: inherit;\n  transition: border-color 0.2s, box-shadow 0.2s;\n}\n\n.input-password {\n  padding-right: 42px;\n}\n\n.input:focus {\n  outline: none;\n  border-color: #3b82f6;\n  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);\n}\n\n.input::placeholder {\n  color: #71717a;\n}\n\n.toggle-password {\n  position: absolute;\n  right: 12px;\n  background: none;\n  border: none;\n  padding: 0;\n  cursor: pointer;\n  color: #71717a;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n.toggle-password:hover {\n  color: #a1a1aa;\n}\n\n.error {\n  color: #ef4444;\n  font-size: 12px;\n  margin-top: -8px;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\n\n.button {\n  width: 100%;\n  padding: 12px 16px;\n  background: #2563eb;\n  color: #fff;\n  border: none;\n  border-radius: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  font-family: inherit;\n  cursor: pointer;\n  transition: background 0.2s;\n  margin-top: 4px;\n}\n\n.button:hover {\n  background: #1d4ed8;\n}\n\n.button:disabled {\n  background: #3f3f46;\n  color: #71717a;\n  cursor: not-allowed;\n}`,
+  }}
+  activeFile="/App.js"
+  visibleFiles={["/App.js", "/validate.js"]}
+/>
+
+In the next section, we'll add live feedback so errors update as users type.
+
+---
+
+## 2. Controlled Forms
+
+In controlled forms, React manages the input values through state. Every keystroke updates state, and the input displays whatever state holds. This gives us full control to validate and show errors while typing. We'll start from the base form again. Error rendering stays the same, but we need more state and handlers.
+
+First, add state for form values and track which fields the user has interacted with:
+
+```jsx ins={2-3}
+export default function RegistrationForm() {
+  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [touched, setTouched] = useState({});
+  const [errors, setErrors] = useState({});
+
+  // ...
+}
+```
+
+Next, add handlers for change and blur events:
+
+```jsx ins={4-17}
+export default function RegistrationForm() {
+  // ... state
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (touched[name]) {
+      setErrors(prev => ({ ...prev, [name]: validateField(name, value) }));
+    }
+  }
+
+  function handleBlur(field) {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    setErrors(prev => ({ ...prev, [field]: validateField(field, formData[field]) }));
+  }
+
+  // ...
+}
+```
+
+`handleChange` updates the value on every keystroke. If the field was already touched, it also re-validates so users see errors clear as they fix them.
+
+`handleBlur` runs when users leave a field. This is where we show errors for the first time, because showing them immediately while typing feels aggressive. Once a field is touched, `handleChange` takes over validation on subsequent keystrokes.
+
+Now that we have the handlers, wire them to the inputs. Each input needs `value`, `onChange`, and `onBlur`:
+
+```jsx ins={8-10}
+export default function RegistrationForm() {
+  // ... state and handlers
+
+  return (
+    <form onSubmit={handleSubmit} className="form">
+      <input
+        name="name"
+        value={formData.name}
+        onChange={handleChange}
+        onBlur={() => handleBlur("name")}
+        placeholder="Name"
+        className="input"
+      />
+      {touched.name && errors.name && <span className="error">{errors.name}</span>}
+      {/* ... other fields */}
+    </form>
+  );
+}
+```
+
+**What changed from Section 1:**
+- React now controls input values through state (controlled inputs)
+- Added `touched` state to track which fields have been visited
+- Validation happens on blur and re-validates on change
+- Errors clear immediately as users fix them
+
+View the full code and try it out:
+
+<CodeSandbox 
+  files={{
+    "/App.js": `import { useState } from "react";\nimport { PasswordInput } from "./components";\nimport { validateField, initialData } from "./validate";\nimport "./styles.css";\n\nexport default function RegistrationForm() {\n  const [formData, setFormData] = useState(initialData);\n  const [errors, setErrors] = useState({});\n  const [touched, setTouched] = useState({});\n\n  function handleChange(e) {\n    const { name, value } = e.target;\n    setFormData(prev => ({ ...prev, [name]: value }));\n\n    if (touched[name]) {\n      setErrors(prev => ({\n        ...prev,\n        [name]: validateField(name, value),\n      }));\n    }\n  }\n\n  function handleBlur(field) {\n    setTouched(prev => ({ ...prev, [field]: true }));\n    setErrors(prev => ({\n      ...prev,\n      [field]: validateField(field, formData[field]),\n    }));\n  }\n\n  function handleSubmit(e) {\n    e.preventDefault();\n\n    const newErrors = {};\n    Object.keys(formData).forEach(field => {\n      const error = validateField(field, formData[field]);\n      if (error) newErrors[field] = error;\n    });\n\n    if (Object.keys(newErrors).length > 0) {\n      setErrors(newErrors);\n      setTouched({ name: true, email: true, password: true });\n      return;\n    }\n\n    alert(\`Welcome, \${formData.name}!\`);\n    setFormData(initialData);\n    setErrors({});\n    setTouched({});\n  }\n\n  return (\n    <form onSubmit={handleSubmit} className="form">\n      <div className="field">\n        <input\n          name="name"\n          value={formData.name}\n          onChange={handleChange}\n          onBlur={() => handleBlur("name")}\n          placeholder="Name"\n          className="input"\n        />\n        {touched.name && errors.name && <span className="error">{errors.name}</span>}\n      </div>\n\n      <div className="field">\n        <input\n          name="email"\n          value={formData.email}\n          onChange={handleChange}\n          onBlur={() => handleBlur("email")}\n          placeholder="Email"\n          className="input"\n        />\n        {touched.email && errors.email && <span className="error">{errors.email}</span>}\n      </div>\n\n      <div className="field">\n        <PasswordInput\n          name="password"\n          value={formData.password}\n          onChange={handleChange}\n          onBlur={() => handleBlur("password")}\n        />\n        {touched.password && errors.password && <span className="error">{errors.password}</span>}\n      </div>\n\n      <button type="submit" className="button">Create Account</button>\n    </form>\n  );\n}`,
+    "/validate.js": `export const initialData = {\n  name: "",\n  email: "",\n  password: "",\n};\n\nexport function validateField(field, value) {\n  switch (field) {\n    case "name":\n      if (!value || value.length < 2) return "Name must be at least 2 characters";\n      return "";\n    case "email":\n      if (!value || !value.includes("@")) return "Please enter a valid email";\n      return "";\n    case "password":\n      if (!value || value.length < 8) return "Password must be at least 8 characters";\n      if (!/[A-Z]/.test(value)) return "Password must contain an uppercase letter";\n      if (!/[0-9]/.test(value)) return "Password must contain a number";\n      return "";\n    default:\n      return "";\n  }\n}`,
+    "/components.js": `import { useState } from "react";\n\nconst EyeIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>\n    <circle cx="12" cy="12" r="3"/>\n  </svg>\n);\n\nconst EyeOffIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>\n    <line x1="1" y1="1" x2="23" y2="23"/>\n  </svg>\n);\n\nexport function PasswordInput({ name = "password", placeholder = "Password", ...props }) {\n  const [show, setShow] = useState(false);\n  return (\n    <div className="input-wrapper">\n      <input\n        name={name}\n        type={show ? "text" : "password"}\n        placeholder={placeholder}\n        className="input input-password"\n        {...props}\n      />\n      <button type="button" className="toggle-password" onClick={() => setShow(!show)}>\n        {show ? <EyeOffIcon /> : <EyeIcon />}\n      </button>\n    </div>\n  );\n}`,
+    "/styles.css": `*, *::before, *::after {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #0a0a0a;\n  font-family: 'Geist', sans-serif;\n}\n\n.form {\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n  width: 100%;\n  max-width: 320px;\n  min-width: 300px;\n  padding: 24px;\n  background: #18181b;\n  border-radius: 12px;\n  overflow: hidden;\n}\n\n.field {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n}\n\n.input-wrapper {\n  position: relative;\n  display: flex;\n  align-items: center;\n}\n\n.input {\n  width: 100%;\n  padding: 10px 14px;\n  border: 1px solid #3f3f46;\n  border-radius: 8px;\n  background: #27272a;\n  color: #fafafa;\n  font-size: 14px;\n  font-family: inherit;\n  transition: border-color 0.2s, box-shadow 0.2s;\n}\n\n.input-password {\n  padding-right: 42px;\n}\n\n.input:focus {\n  outline: none;\n  border-color: #3b82f6;\n  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);\n}\n\n.input::placeholder {\n  color: #71717a;\n}\n\n.toggle-password {\n  position: absolute;\n  right: 12px;\n  background: none;\n  border: none;\n  padding: 0;\n  cursor: pointer;\n  color: #71717a;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n.toggle-password:hover {\n  color: #a1a1aa;\n}\n\n.error {\n  color: #ef4444;\n  font-size: 12px;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\n\n.button {\n  width: 100%;\n  padding: 12px 16px;\n  background: #2563eb;\n  color: #fff;\n  border: none;\n  border-radius: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  font-family: inherit;\n  cursor: pointer;\n  transition: background 0.2s;\n  margin-top: 4px;\n}\n\n.button:hover {\n  background: #1d4ed8;\n}\n\n.button:disabled {\n  background: #3f3f46;\n  color: #71717a;\n  cursor: not-allowed;\n}`,
+  }}
+  activeFile="/App.js"
+  visibleFiles={["/App.js", "/validate.js"]}
+/>
+
+This works, but managing three state objects and custom handlers gets tedious. In the next section, we'll use React Hook Form to handle all of this for us.
+
+---
+
+## 3. React Hook Form
+
+React Hook Form handles all that boilerplate. No more `useState` for values, errors, or touched. The `useForm` hook does it all.
+
+**Step 1:** Replace manual state with `useForm`:
+
+```jsx ins={1-10} del={1}
+// No more: useState for formData, errors, touched, handleChange, handleBlur...
+const {
+  register,
+  handleSubmit,
+  formState: { errors, isSubmitting },
+  reset,
+} = useForm({
+  mode: "onTouched",  // Validate when user leaves the field
+  defaultValues: { name: "", email: "", password: "" },
+});
+```
+
+**Step 2:** Replace custom handlers with `register`. Validation rules are defined inline with each field:
+
+```jsx ins={4-7}
+<input
+  placeholder="Name"
+  className="input"
+  {...register("name", {
+    required: "Name is required",
+    minLength: { value: 2, message: "Name must be at least 2 characters" },
+  })}
+/>
+{errors.name && <span className="error">{errors.name.message}</span>}
+```
+
+**Step 3:** Use `handleSubmit` wrapper:
+
+```jsx del={1} ins={2} del={4} ins={5}
+<form onSubmit={onSubmit} className="form">
+<form onSubmit={handleSubmit(onSubmit)} className="form">
+  {/* ... */}
+  <button type="submit">Create Account</button>
+  <button type="submit" disabled={isSubmitting}>Create Account</button>
+</form>
+```
+
+**What changed from Section 2:**
+- No `useState` for form data, errors, or touched
+- No `handleChange` or `handleBlur` functions
+- Validation rules defined inline with each field
+- `isSubmitting` built-in for loading states
+
+React Hook Form supports `required`, `minLength`, `maxLength`, `pattern` (for regex), and custom `validate` functions. Check the full code for email and password examples:
+
+<CodeSandbox 
+  files={{
+    "/App.js": `import { useForm } from "react-hook-form";\nimport { PasswordInput } from "./components";\nimport "./styles.css";\n\nexport default function RegistrationForm() {\n  const {\n    register,\n    handleSubmit,\n    formState: { errors, isSubmitting },\n    reset,\n  } = useForm({\n    mode: "onTouched",\n    defaultValues: {\n      name: "",\n      email: "",\n      password: "",\n    },\n  });\n\n  async function onSubmit(data) {\n    alert(\`Welcome, \${data.name}!\`);\n    reset();\n  }\n\n  return (\n    <form onSubmit={handleSubmit(onSubmit)} className="form">\n      <div className="field">\n        <input\n          placeholder="Name"\n          className="input"\n          {...register("name", {\n            required: "Name is required",\n            minLength: { value: 2, message: "Name must be at least 2 characters" },\n          })}\n        />\n        {errors.name && <span className="error">{errors.name.message}</span>}\n      </div>\n\n      <div className="field">\n        <input\n          placeholder="Email"\n          className="input"\n          {...register("email", {\n            required: "Email is required",\n            pattern: {\n              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\\\.[A-Z]{2,}$/i,\n              message: "Invalid email format",\n            },\n          })}\n        />\n        {errors.email && <span className="error">{errors.email.message}</span>}\n      </div>\n\n      <div className="field">\n        <PasswordInput\n          {...register("password", {\n            required: "Password is required",\n            minLength: { value: 8, message: "Password must be at least 8 characters" },\n            validate: {\n              hasUpperCase: v => /[A-Z]/.test(v) || "Must contain an uppercase letter",\n              hasNumber: v => /[0-9]/.test(v) || "Must contain a number",\n            },\n          })}\n        />\n        {errors.password && <span className="error">{errors.password.message}</span>}\n      </div>\n\n      <button type="submit" disabled={isSubmitting} className="button">\n        {isSubmitting ? "Creating..." : "Create Account"}\n      </button>\n    </form>\n  );\n}`,
+    "/components.js": `import { useState, forwardRef } from "react";\n\nconst EyeIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>\n    <circle cx="12" cy="12" r="3"/>\n  </svg>\n);\n\nconst EyeOffIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>\n    <line x1="1" y1="1" x2="23" y2="23"/>\n  </svg>\n);\n\nexport const PasswordInput = forwardRef(function PasswordInput({ placeholder = "Password", ...props }, ref) {\n  const [show, setShow] = useState(false);\n  return (\n    <div className="input-wrapper">\n      <input\n        ref={ref}\n        type={show ? "text" : "password"}\n        placeholder={placeholder}\n        className="input input-password"\n        {...props}\n      />\n      <button type="button" className="toggle-password" onClick={() => setShow(!show)}>\n        {show ? <EyeOffIcon /> : <EyeIcon />}\n      </button>\n    </div>\n  );\n});`,
+    "/styles.css": `*, *::before, *::after {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #0a0a0a;\n  font-family: 'Geist', sans-serif;\n}\n\n.form {\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n  width: 100%;\n  max-width: 320px;\n  min-width: 300px;\n  padding: 24px;\n  background: #18181b;\n  border-radius: 12px;\n  overflow: hidden;\n}\n\n.field {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n}\n\n.input-wrapper {\n  position: relative;\n  display: flex;\n  align-items: center;\n}\n\n.input {\n  width: 100%;\n  padding: 10px 14px;\n  border: 1px solid #3f3f46;\n  border-radius: 8px;\n  background: #27272a;\n  color: #fafafa;\n  font-size: 14px;\n  font-family: inherit;\n  transition: border-color 0.2s, box-shadow 0.2s;\n}\n\n.input-password {\n  padding-right: 42px;\n}\n\n.input:focus {\n  outline: none;\n  border-color: #3b82f6;\n  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);\n}\n\n.input::placeholder {\n  color: #71717a;\n}\n\n.toggle-password {\n  position: absolute;\n  right: 12px;\n  background: none;\n  border: none;\n  padding: 0;\n  cursor: pointer;\n  color: #71717a;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n.toggle-password:hover {\n  color: #a1a1aa;\n}\n\n.error {\n  color: #ef4444;\n  font-size: 12px;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\n\n.button {\n  width: 100%;\n  padding: 12px 16px;\n  background: #2563eb;\n  color: #fff;\n  border: none;\n  border-radius: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  font-family: inherit;\n  cursor: pointer;\n  transition: background 0.2s;\n  margin-top: 4px;\n}\n\n.button:hover {\n  background: #1d4ed8;\n}\n\n.button:disabled {\n  background: #3f3f46;\n  color: #71717a;\n  cursor: not-allowed;\n}`,
+  }}
+  activeFile="/App.js"
+  visibleFiles={["/App.js"]}
+  dependencies={{ "react-hook-form": "^7.54.0" }}
+/>
+
+This approach is cleaner and we don't have to manage form states manually. But inline validation rules can get out of hand for large forms. In the next section, we'll use <a href="https://zod.dev" target="_blank">Zod</a> to keep validation logic in one place.
+
+
+---
+
+## 4. React Hook Form + Zod
+
+For complex forms, you can use <a href="https://zod.dev" target="_blank">Zod</a> to define all validation rules in one schema. This keeps validation logic centralized instead of scattered across each field.
+
+First, define your schema in a separate file:
+
+```js
+// schema.js
+import { z } from "zod";
+
+export const userSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email format"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Must contain an uppercase letter")
+    .regex(/[0-9]/, "Must contain a number"),
+});
+```
+
+> Notice how `.email()` handles email validation without writing regex manually. Zod has many built-in validators like `.url()`, `.uuid()`, and more.
+
+Now update the previous React Hook Form example. Add the new imports and pass `zodResolver` to `useForm`:
+
+```jsx ins={2} ins={4} ins={12}
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PasswordInput } from "./components";
+import { userSchema } from "./schema";
+
+export default function RegistrationForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(userSchema),
+    mode: "onTouched",
+  });
+
+  // ...
+}
+```
+
+Now `register` no longer needs inline validation rules. The schema handles everything:
+
+```jsx del={3-6} ins={7}
+<input
+  placeholder="Name"
+  {...register("name", {
+    required: "Name is required",
+    minLength: { value: 2, message: "Name must be at least 2 characters" },
+  })}
+  {...register("name")}
+/>
+```
+
+**What changed from Section 3:**
+- Validation rules moved from inline to a centralized schema
+- Built-in validators like `.email()` replace manual regex patterns
+- `register` calls are cleaner with no validation options
+- TypeScript types can be inferred with `z.infer<typeof userSchema>`
+
+View the full code and try it out:
+
+<CodeSandbox 
+  files={{
+    "/App.js": `import { useForm } from "react-hook-form";\nimport { zodResolver } from "@hookform/resolvers/zod";\nimport { PasswordInput } from "./components";\nimport { userSchema } from "./schema";\nimport "./styles.css";\n\nexport default function RegistrationForm() {\n  const {\n    register,\n    handleSubmit,\n    formState: { errors, isSubmitting },\n    reset,\n  } = useForm({\n    resolver: zodResolver(userSchema),\n    mode: "onTouched",\n    defaultValues: {\n      name: "",\n      email: "",\n      password: "",\n    },\n  });\n\n  async function onSubmit(data) {\n    alert(\`Welcome, \${data.name}!\`);\n    reset();\n  }\n\n  return (\n    <form onSubmit={handleSubmit(onSubmit)} className="form">\n      <div className="field">\n        <input placeholder="Name" className="input" {...register("name")} />\n        {errors.name?.message && <span className="error">{errors.name.message}</span>}\n      </div>\n\n      <div className="field">\n        <input placeholder="Email" className="input" {...register("email")} />\n        {errors.email?.message && <span className="error">{errors.email.message}</span>}\n      </div>\n\n      <div className="field">\n        <PasswordInput {...register("password")} />\n        {errors.password?.message && <span className="error">{errors.password.message}</span>}\n      </div>\n\n      <button type="submit" disabled={isSubmitting} className="button">\n        {isSubmitting ? "Creating..." : "Create Account"}\n      </button>\n    </form>\n  );\n}`,
+    "/schema.js": `import { z } from "zod";\n\nexport const userSchema = z.object({\n  name: z\n    .string()\n    .min(2, "Name must be at least 2 characters")\n    .max(50, "Name must be less than 50 characters"),\n  email: z\n    .string()\n    .email("Invalid email format"),\n  password: z\n    .string()\n    .min(8, "Password must be at least 8 characters")\n    .regex(/[A-Z]/, "Password must contain an uppercase letter")\n    .regex(/[a-z]/, "Password must contain a lowercase letter")\n    .regex(/[0-9]/, "Password must contain a number"),\n});`,
+    "/components.js": `import { useState, forwardRef } from "react";\n\nconst EyeIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>\n    <circle cx="12" cy="12" r="3"/>\n  </svg>\n);\n\nconst EyeOffIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>\n    <line x1="1" y1="1" x2="23" y2="23"/>\n  </svg>\n);\n\nexport const PasswordInput = forwardRef(function PasswordInput({ placeholder = "Password", ...props }, ref) {\n  const [show, setShow] = useState(false);\n  return (\n    <div className="input-wrapper">\n      <input\n        ref={ref}\n        type={show ? "text" : "password"}\n        placeholder={placeholder}\n        className="input input-password"\n        {...props}\n      />\n      <button type="button" className="toggle-password" onClick={() => setShow(!show)}>\n        {show ? <EyeOffIcon /> : <EyeIcon />}\n      </button>\n    </div>\n  );\n});`,
+    "/styles.css": `*, *::before, *::after {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #0a0a0a;\n  font-family: 'Geist', sans-serif;\n}\n\n.form {\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n  width: 100%;\n  max-width: 320px;\n  min-width: 300px;\n  padding: 24px;\n  background: #18181b;\n  border-radius: 12px;\n  overflow: hidden;\n}\n\n.field {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n}\n\n.input-wrapper {\n  position: relative;\n  display: flex;\n  align-items: center;\n}\n\n.input {\n  width: 100%;\n  padding: 10px 14px;\n  border: 1px solid #3f3f46;\n  border-radius: 8px;\n  background: #27272a;\n  color: #fafafa;\n  font-size: 14px;\n  font-family: inherit;\n  transition: border-color 0.2s, box-shadow 0.2s;\n}\n\n.input-password {\n  padding-right: 42px;\n}\n\n.input:focus {\n  outline: none;\n  border-color: #3b82f6;\n  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);\n}\n\n.input::placeholder {\n  color: #71717a;\n}\n\n.toggle-password {\n  position: absolute;\n  right: 12px;\n  background: none;\n  border: none;\n  padding: 0;\n  cursor: pointer;\n  color: #71717a;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n.toggle-password:hover {\n  color: #a1a1aa;\n}\n\n.error {\n  color: #ef4444;\n  font-size: 12px;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\n\n.button {\n  width: 100%;\n  padding: 12px 16px;\n  background: #2563eb;\n  color: #fff;\n  border: none;\n  border-radius: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  font-family: inherit;\n  cursor: pointer;\n  transition: background 0.2s;\n  margin-top: 4px;\n}\n\n.button:hover {\n  background: #1d4ed8;\n}\n\n.button:disabled {\n  background: #3f3f46;\n  color: #71717a;\n  cursor: not-allowed;\n}`,
+  }}
+  activeFile="/App.js"
+  visibleFiles={["/App.js", "/schema.js"]}
+  dependencies={{ "react-hook-form": "^7.54.0", "@hookform/resolvers": "^3.9.1", "zod": "^3.24.0" }}
+/>
+
+All the validation we've done so far happens in the browser before data is sent to the server. But users can bypass this by disabling JavaScript or sending requests directly to your API. For real security, the server needs to validate data too.
+
+---
+
+## 5. Client + Server Validation
+
+We'll build on Section 4 by adding server-side validation. This gives us instant feedback from the client and security from the server.
+
+First, create a function that validates with the same Zod schema. This simulates a server call. In production, you'd use a <a href="https://nextjs.org/docs/app/getting-started/updating-data#creating-server-functions" target="_blank">Next.js Server Function</a> or API endpoint:
+
+```js
+// actions.js (add "use server" at top for Next.js Server Actions)
+import { userSchema } from "./schema";
+
+export async function submitUserForm(data) {
+  const result = userSchema.safeParse(data);
+
+  if (!result.success) {
+    const errors = {};
+    result.error.issues.forEach((issue) => {
+      errors[issue.path[0]] = issue.message;
+    });
+    return { success: false, errors, data: null };
+  }
+
+  // Simulate database save delay
+  await new Promise((r) => setTimeout(r, 1000));
+
+  return {
+    success: true,
+    errors: null,
+    data: result.data,
+    message: "Account created successfully!",
+  };
+}
+```
+
+Now update the React Hook Form component to call this action:
+
+```jsx ins={2} del={7} ins={8} ins={12-22} ins={24-31}
+export default function RegistrationForm() {
+  const [serverState, setServerState] = useState(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    formState: { errors: clientErrors, isSubmitting },
+    reset,
+  } = useForm({ resolver: zodResolver(userSchema), mode: "onTouched" });
+
+  async function onSubmit(data) {
+    const state = await submitUserForm(data);
+
+    if (state.success) {
+      alert(state.message);
+      reset();
+      setServerState(null);
+    } else {
+      setServerState(state);
+    }
+  }
+
+  // Merge client and server errors for unified display
+  const serverErrors = serverState?.errors || {};
+  const allErrors = {
+    ...Object.fromEntries(
+      Object.entries(clientErrors).map(([key, error]) => [key, error.message])
+    ),
+    ...serverErrors,
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="form">
+      {/* ... fields with updated error display */}
+    </form>
+  );
+}
+```
+
+Finally, update error rendering to use `allErrors` instead of `errors`:
+
+```jsx del={7} ins={8} del={11} ins={12} del={15} ins={16}
+export default function RegistrationForm() {
+  // ... state, useForm, onSubmit, allErrors from above
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="form">
+      <input placeholder="Name" className="input" {...register("name")} />
+      {errors.name?.message && <span className="error">{errors.name.message}</span>}
+      {allErrors.name && <span className="error">{allErrors.name}</span>}
+
+      <input placeholder="Email" className="input" {...register("email")} />
+      {errors.email?.message && <span className="error">{errors.email.message}</span>}
+      {allErrors.email && <span className="error">{allErrors.email}</span>}
+
+      <PasswordInput {...register("password")} />
+      {errors.password?.message && <span className="error">{errors.password.message}</span>}
+      {allErrors.password && <span className="error">{allErrors.password}</span>}
+
+      <button type="submit" disabled={isSubmitting} className="button">
+        {isSubmitting ? "Validating..." : "Create Account"}
+      </button>
+    </form>
+  );
+}
+```
+
+`allErrors` combines client and server errors so they appear inline with fields. This works well when server errors map to specific fields (like "email already taken"). For general errors that don't map to a field (network issues, rate limits), a toast or banner works better.
+
+**What changed from Section 4:**
+- Added `serverState` to store the server response
+- `onSubmit` now calls the server action and handles success/failure
+- Errors from both client and server are merged into one object
+- The same Zod schema validates on both sides
+
+View the full code and try it out:
+
+<CodeSandbox 
+  files={{
+    "/App.js": `import { useState } from "react";\nimport { useForm } from "react-hook-form";\nimport { zodResolver } from "@hookform/resolvers/zod";\nimport { PasswordInput } from "./components";\nimport { userSchema } from "./schema";\nimport { submitUserForm } from "./actions";\nimport "./styles.css";\n\nexport default function RegistrationForm() {\n  const [serverState, setServerState] = useState(null);\n\n  const {\n    register,\n    handleSubmit,\n    formState: { errors: clientErrors, isSubmitting },\n    reset,\n  } = useForm({\n    resolver: zodResolver(userSchema),\n    mode: "onTouched",\n  });\n\n  async function onSubmit(data) {\n    const state = await submitUserForm(data);\n\n    if (state.success) {\n      alert(state.message);\n      reset();\n      setServerState(null);\n    } else {\n      setServerState(state);\n    }\n  }\n\n  const serverErrors = serverState?.errors || {};\n  const allErrors = {\n    ...Object.fromEntries(\n      Object.entries(clientErrors).map(([key, error]) => [key, error.message])\n    ),\n    ...serverErrors,\n  };\n\n  return (\n    <form onSubmit={handleSubmit(onSubmit)} className="form">\n      <div className="field">\n        <input placeholder="Name" className="input" {...register("name")} />\n        {allErrors.name && <span className="error">{allErrors.name}</span>}\n      </div>\n\n      <div className="field">\n        <input placeholder="Email" className="input" {...register("email")} />\n        {allErrors.email && <span className="error">{allErrors.email}</span>}\n      </div>\n\n      <div className="field">\n        <PasswordInput {...register("password")} />\n        {allErrors.password && <span className="error">{allErrors.password}</span>}\n      </div>\n\n      <button type="submit" disabled={isSubmitting} className="button">\n        {isSubmitting ? "Validating..." : "Create Account"}\n      </button>\n    </form>\n  );\n}`,
+    "/actions.js": `// Simulates a server action - in Next.js this would have "use server"\nimport { userSchema } from "./schema";\n\nexport async function submitUserForm(data) {\n  // Server-side validation (never trust client data)\n  const result = userSchema.safeParse(data);\n\n  if (!result.success) {\n    const errors = {};\n    result.error.issues.forEach((issue) => {\n      errors[issue.path[0]] = issue.message;\n    });\n    return { success: false, errors, data: null };\n  }\n\n  // Simulate database save\n  await new Promise((r) => setTimeout(r, 1000));\n\n  return {\n    success: true,\n    errors: null,\n    data: { name: result.data.name, email: result.data.email },\n    message: "Account created successfully!",\n  };\n}`,
+    "/schema.js": `import { z } from "zod";\n\nexport const userSchema = z.object({\n  name: z.string().min(2, "Name must be at least 2 characters"),\n  email: z.string().email("Invalid email format"),\n  password: z\n    .string()\n    .min(8, "Password must be at least 8 characters")\n    .regex(/[A-Z]/, "Must contain an uppercase letter")\n    .regex(/[0-9]/, "Must contain a number"),\n});`,
+    "/components.js": `import { useState, forwardRef } from "react";\n\nconst EyeIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>\n    <circle cx="12" cy="12" r="3"/>\n  </svg>\n);\n\nconst EyeOffIcon = () => (\n  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">\n    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>\n    <line x1="1" y1="1" x2="23" y2="23"/>\n  </svg>\n);\n\nexport const PasswordInput = forwardRef(function PasswordInput({ placeholder = "Password", ...props }, ref) {\n  const [show, setShow] = useState(false);\n  return (\n    <div className="input-wrapper">\n      <input\n        ref={ref}\n        type={show ? "text" : "password"}\n        placeholder={placeholder}\n        className="input input-password"\n        {...props}\n      />\n      <button type="button" className="toggle-password" onClick={() => setShow(!show)}>\n        {show ? <EyeOffIcon /> : <EyeIcon />}\n      </button>\n    </div>\n  );\n});`,
+    "/styles.css": `*, *::before, *::after {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #0a0a0a;\n  font-family: 'Geist', sans-serif;\n}\n\n.form {\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n  width: 100%;\n  max-width: 320px;\n  min-width: 300px;\n  padding: 24px;\n  background: #18181b;\n  border-radius: 12px;\n  overflow: hidden;\n}\n\n.field {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n}\n\n.input-wrapper {\n  position: relative;\n  display: flex;\n  align-items: center;\n}\n\n.input {\n  width: 100%;\n  padding: 10px 14px;\n  border: 1px solid #3f3f46;\n  border-radius: 8px;\n  background: #27272a;\n  color: #fafafa;\n  font-size: 14px;\n  font-family: inherit;\n  transition: border-color 0.2s, box-shadow 0.2s;\n}\n\n.input-password {\n  padding-right: 42px;\n}\n\n.input:focus {\n  outline: none;\n  border-color: #3b82f6;\n  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);\n}\n\n.input::placeholder {\n  color: #71717a;\n}\n\n.toggle-password {\n  position: absolute;\n  right: 12px;\n  background: none;\n  border: none;\n  padding: 0;\n  cursor: pointer;\n  color: #71717a;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n.toggle-password:hover {\n  color: #a1a1aa;\n}\n\n.error {\n  color: #ef4444;\n  font-size: 12px;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\n\n.button {\n  width: 100%;\n  padding: 12px 16px;\n  background: #2563eb;\n  color: #fff;\n  border: none;\n  border-radius: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  font-family: inherit;\n  cursor: pointer;\n  transition: background 0.2s;\n  margin-top: 4px;\n}\n\n.button:hover {\n  background: #1d4ed8;\n}\n\n.button:disabled {\n  background: #3f3f46;\n  color: #71717a;\n  cursor: not-allowed;\n}`,
+  }}
+  activeFile="/App.js"
+  visibleFiles={["/App.js", "/actions.js", "/schema.js"]}
+  dependencies={{ "react-hook-form": "^7.54.0", "@hookform/resolvers": "^3.9.1", "zod": "^3.24.0" }}
+/>
+
+More setup than simpler approaches, but this is what production forms look like.
+
+---
+
+## When to Use What
+
+| Approach | Good For |
+|----------|----------|
+| Uncontrolled | Quick prototypes, simple forms where UX isn't critical |
+| Controlled | Learning React, forms with unusual validation timing |
+| React Hook Form | Most forms (the sensible default) |
+| RHF + Zod | Complex validation, shared schemas, TypeScript projects |
+| Client + Server | Production apps, anything with a database |
+
+Start with React Hook Form. Add Zod when validation gets complex. Add server validation when you're persisting data.
+
+---
+
+## Key Points
+
+- **Uncontrolled forms are the simplest.** Use `FormData` on submit when you don't need live feedback
+- **Validate on blur, re-validate on change.** Show errors when users leave a field, clear them as they fix
+- **React Hook Form handles the boilerplate.** No manual state, handlers, or touched tracking
+- **Zod centralizes validation** and gives you TypeScript types from the same schema
+- **Client validation is for UX**, server validation is for security. You need both in production
+
+---
+
+Forms are one of those things where the "right" approach depends entirely on context. A contact form on a landing page doesn't need the same rigor as a multi-step checkout flow. Pick the simplest approach that meets your needs, and add complexity only when you hit its limits.

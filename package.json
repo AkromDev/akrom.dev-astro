@@ -13,13 +13,18 @@
   "dependencies": {
     "@astrojs/mdx": "^4.3.0",
     "@astrojs/node": "^9.2.2",
+    "@astrojs/react": "^4.4.2",
     "@astrojs/sitemap": "^3.4.0",
+    "@codesandbox/sandpack-react": "^2.20.0",
+    "@codesandbox/sandpack-themes": "^2.0.21",
     "@iconify-json/lucide": "^1.2.20",
     "@iconify-json/simple-icons": "^1.2.18",
     "@iconify/utils": "^2.2.1",
     "@shikijs/themes": "^1.26.1",
     "astro": "^5.8.0",
     "astro-expressive-code": "^0.38.3",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "sharp": "^0.33.5"
   },
   "devDependencies": {
