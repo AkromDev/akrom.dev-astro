@@ -4,6 +4,7 @@ import '../../styles/article.css';
 import ImageGlow from "../../components/ImageGlow.astro";
 import Card from "../../components/Card.astro";
 import Layout from "../../layouts/Layout.astro";
+import Newsletter from "../../components/Newsletter.astro";
 
 import type { GetStaticPaths } from "astro";
 import type { CollectionEntry } from "astro:content";
@@ -68,6 +69,9 @@ const { Content, headings } = await render(post);
           </li>
         ))}
       </ol>
+    </Card>
+    <Card>
+      <Newsletter username="YOUR_BUTTONDOWN_USERNAME" />
     </Card>
   </div>
   <article slot="right" data-pagefind-body>
@@ -145,16 +149,6 @@ const { Content, headings } = await render(post);
   .toc-card ol li a.active {
     color: white;
     background: var(--primary);
-  }
-
-  .left {
-    height: 100%;
-    position: relative;
-  }
-
-  .toc-card {
-    position: sticky;
-    top: 2rem;
   }
 
   article {

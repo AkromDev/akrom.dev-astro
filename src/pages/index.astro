@@ -9,6 +9,7 @@ import ImageGlow from '../components/ImageGlow.astro';
 import Icon from '../components/Icon.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import WorkCard from '../components/WorkCard.astro';
+import Newsletter from '../components/Newsletter.astro';
 import { getCollection } from 'astro:content';
 import { getEntry } from 'astro:content';
 import { render } from 'astro:content';
@@ -57,6 +58,9 @@ const { Content: About } = await render(about!);
 					</li>
 				))}
 			</ul>
+		</Card>
+		<Card>
+			<Newsletter username="YOUR_BUTTONDOWN_USERNAME" />
 		</Card>
 	</div>
 	<div class="layout-grid-right" slot="right">
