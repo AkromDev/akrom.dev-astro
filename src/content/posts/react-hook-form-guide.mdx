@@ -1,0 +1,717 @@
+---
+title: "React Hook Form: Complete Guide"
+description: "Master React Hook Form from basic usage to advanced patterns like field arrays, wizard forms, and custom components."
+image: "../assets/blog/forms.jpg"
+createdAt: 12-23-2024
+draft: true
+tags:
+  - react
+  - forms
+  - typescript
+---
+
+React Hook Form is a library for building performant forms in React. It minimizes re-renders, handles validation, and manages form state without the boilerplate.
+
+---
+
+## Why React Hook Form?
+
+Traditional form handling in React means:
+- One state variable per field
+- One onChange handler per field
+- Re-renders on every keystroke
+- Manual validation logic
+
+React Hook Form eliminates most of this. It uses uncontrolled components internally, only triggering re-renders when necessary.
+
+```tsx
+import { useForm } from "react-hook-form";
+
+function LoginForm() {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+
+  function onSubmit(data) {
+    console.log(data);
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register("email", { required: "Email is required" })} />
+      {errors.email && <span>{errors.email.message}</span>}
+
+      <input type="password" {...register("password", { required: true })} />
+      {errors.password && <span>Password is required</span>}
+
+      <button type="submit">Login</button>
+    </form>
+  );
+}
+```
+
+No useState, no onChange handlers. The `register` function connects inputs to the form.
+
+---
+
+## Installation
+
+```bash
+npm install react-hook-form
+```
+
+For TypeScript with Zod validation:
+
+```bash
+npm install react-hook-form zod @hookform/resolvers
+```
+
+---
+
+## Basic Usage
+
+### The useForm hook
+
+```tsx
+const {
+  register,      // connect inputs
+  handleSubmit,  // wrap submit handler
+  formState,     // errors, isSubmitting, isDirty, etc.
+  reset,         // reset form values
+  watch,         // subscribe to field values
+  setValue,      // programmatically set values
+  getValues,     // get current values
+  trigger,       // manually trigger validation
+  control,       // for Controller component
+} = useForm({
+  defaultValues: {
+    email: "",
+    password: "",
+  },
+  mode: "onBlur", // when to validate
+});
+```
+
+### Registering inputs
+
+The `register` function returns props that connect an input to the form:
+
+```tsx
+<input {...register("email")} />
+
+// With validation rules
+<input
+  {...register("email", {
+    required: "Email is required",
+    pattern: {
+      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+      message: "Invalid email format",
+    },
+  })}
+/>
+```
+
+### Handling submission
+
+`handleSubmit` prevents default, validates, and calls your handler only if valid:
+
+```tsx
+function onSubmit(data) {
+  // data is typed and validated
+  console.log(data);
+}
+
+function onError(errors) {
+  // called when validation fails
+  console.log(errors);
+}
+
+<form onSubmit={handleSubmit(onSubmit, onError)}>
+```
+
+---
+
+## Validation Rules
+
+React Hook Form has built-in validation:
+
+```tsx
+register("field", {
+  required: "This field is required",
+  minLength: { value: 3, message: "Minimum 3 characters" },
+  maxLength: { value: 50, message: "Maximum 50 characters" },
+  min: { value: 0, message: "Must be positive" },
+  max: { value: 100, message: "Maximum 100" },
+  pattern: { value: /^[A-Z]+$/i, message: "Letters only" },
+  validate: (value) => value !== "admin" || "Cannot use admin",
+});
+```
+
+### Multiple validations
+
+```tsx
+register("password", {
+  required: "Password is required",
+  minLength: { value: 8, message: "At least 8 characters" },
+  validate: {
+    hasUppercase: (v) => /[A-Z]/.test(v) || "Need uppercase letter",
+    hasNumber: (v) => /[0-9]/.test(v) || "Need a number",
+  },
+});
+```
+
+### Cross-field validation
+
+Use `watch` to validate against other fields:
+
+```tsx
+const password = watch("password");
+
+<input
+  {...register("confirmPassword", {
+    validate: (value) =>
+      value === password || "Passwords don't match",
+  })}
+/>
+```
+
+---
+
+## Validation Modes
+
+Control when validation runs:
+
+```tsx
+useForm({
+  mode: "onSubmit",    // only on submit (default)
+  mode: "onBlur",      // on blur + submit
+  mode: "onChange",    // on change + blur + submit
+  mode: "onTouched",   // on first blur, then on change
+  mode: "all",         // on change + blur + submit
+});
+```
+
+For most forms, `onTouched` provides a good balance: validate after the user leaves a field, then keep validating as they fix errors.
+
+---
+
+## Form State
+
+The `formState` object tracks everything:
+
+```tsx
+const {
+  formState: {
+    errors,         // validation errors
+    isSubmitting,   // form is submitting
+    isValid,        // all fields valid
+    isDirty,        // any field changed from default
+    dirtyFields,    // which fields changed
+    touchedFields,  // which fields were blurred
+    submitCount,    // number of submit attempts
+  },
+} = useForm();
+```
+
+### Showing errors
+
+```tsx
+{errors.email && (
+  <span className="error">{errors.email.message}</span>
+)}
+
+// For nested errors
+{errors.address?.city && (
+  <span>{errors.address.city.message}</span>
+)}
+```
+
+### Disabling submit button
+
+```tsx
+<button disabled={isSubmitting}>
+  {isSubmitting ? "Submitting..." : "Submit"}
+</button>
+
+// Or disable until form is valid
+<button disabled={!isValid || isSubmitting}>Submit</button>
+```
+
+Note: `isValid` requires `mode: "onChange"` or `mode: "all"` to update in real-time.
+
+---
+
+## Default Values
+
+### Static defaults
+
+```tsx
+useForm({
+  defaultValues: {
+    name: "",
+    email: "",
+    preferences: {
+      newsletter: true,
+      notifications: false,
+    },
+  },
+});
+```
+
+### Async defaults
+
+Load defaults from an API:
+
+```tsx
+const { reset } = useForm();
+
+useEffect(() => {
+  async function loadUser() {
+    const user = await fetchUser();
+    reset(user); // populate form with fetched data
+  }
+  loadUser();
+}, [reset]);
+```
+
+Or use the `values` option (React Hook Form v7.38+):
+
+```tsx
+const { data: user } = useSWR("/api/user");
+
+useForm({
+  values: user, // form updates when user changes
+});
+```
+
+---
+
+## Working with Select and Checkboxes
+
+### Select
+
+```tsx
+<select {...register("country")}>
+  <option value="">Select country</option>
+  <option value="us">United States</option>
+  <option value="uk">United Kingdom</option>
+</select>
+```
+
+### Checkboxes
+
+Single checkbox:
+
+```tsx
+<input type="checkbox" {...register("acceptTerms")} />
+```
+
+Multiple checkboxes (same name):
+
+```tsx
+<label>
+  <input type="checkbox" value="react" {...register("skills")} />
+  React
+</label>
+<label>
+  <input type="checkbox" value="vue" {...register("skills")} />
+  Vue
+</label>
+<label>
+  <input type="checkbox" value="angular" {...register("skills")} />
+  Angular
+</label>
+
+// Result: skills: ["react", "vue"] if those are checked
+```
+
+### Radio buttons
+
+```tsx
+<label>
+  <input type="radio" value="male" {...register("gender")} />
+  Male
+</label>
+<label>
+  <input type="radio" value="female" {...register("gender")} />
+  Female
+</label>
+```
+
+---
+
+## Controller for Custom Components
+
+Some UI libraries don't expose refs. Use `Controller` for these:
+
+```tsx
+import { Controller } from "react-hook-form";
+import DatePicker from "react-datepicker";
+
+function Form() {
+  const { control, handleSubmit } = useForm();
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <Controller
+        name="birthDate"
+        control={control}
+        rules={{ required: "Date is required" }}
+        render={({ field, fieldState: { error } }) => (
+          <>
+            <DatePicker
+              selected={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+            {error && <span>{error.message}</span>}
+          </>
+        )}
+      />
+    </form>
+  );
+}
+```
+
+The `field` object contains: `value`, `onChange`, `onBlur`, `name`, `ref`.
+
+---
+
+## Field Arrays
+
+For dynamic lists of fields, use `useFieldArray`:
+
+```tsx
+import { useForm, useFieldArray } from "react-hook-form";
+
+function TeamForm() {
+  const { register, control, handleSubmit } = useForm({
+    defaultValues: {
+      teamName: "",
+      members: [{ name: "", email: "" }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "members",
+  });
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register("teamName")} placeholder="Team name" />
+
+      {fields.map((field, index) => (
+        <div key={field.id}>
+          <input
+            {...register(`members.${index}.name`)}
+            placeholder="Name"
+          />
+          <input
+            {...register(`members.${index}.email`)}
+            placeholder="Email"
+          />
+          <button type="button" onClick={() => remove(index)}>
+            Remove
+          </button>
+        </div>
+      ))}
+
+      <button type="button" onClick={() => append({ name: "", email: "" })}>
+        Add Member
+      </button>
+
+      <button type="submit">Save Team</button>
+    </form>
+  );
+}
+```
+
+Key points:
+- Use `field.id` as the key, not the index
+- Access nested fields with dot notation: `members.${index}.name`
+- `append`, `remove`, `insert`, `move`, `swap` are available
+
+---
+
+## Watch and Conditional Fields
+
+### Watching values
+
+```tsx
+const { watch } = useForm();
+
+// Watch single field
+const email = watch("email");
+
+// Watch multiple fields
+const [email, password] = watch(["email", "password"]);
+
+// Watch all fields
+const allValues = watch();
+```
+
+### Conditional rendering
+
+```tsx
+function Form() {
+  const { register, watch } = useForm();
+  const accountType = watch("accountType");
+
+  return (
+    <form>
+      <select {...register("accountType")}>
+        <option value="personal">Personal</option>
+        <option value="business">Business</option>
+      </select>
+
+      {accountType === "business" && (
+        <>
+          <input {...register("companyName")} placeholder="Company" />
+          <input {...register("taxId")} placeholder="Tax ID" />
+        </>
+      )}
+    </form>
+  );
+}
+```
+
+### useWatch for performance
+
+`watch` causes re-renders at the form level. For isolated components, use `useWatch`:
+
+```tsx
+import { useWatch } from "react-hook-form";
+
+function PriceDisplay({ control }) {
+  const quantity = useWatch({ control, name: "quantity" });
+  const price = useWatch({ control, name: "price" });
+
+  return <div>Total: ${quantity * price}</div>;
+}
+```
+
+---
+
+## Multi-Step Forms (Wizard)
+
+For multi-step forms, manage state outside the form or persist between steps:
+
+```tsx
+import { useState } from "react";
+import { useForm, FormProvider, useFormContext } from "react-hook-form";
+
+function WizardForm() {
+  const [step, setStep] = useState(0);
+  const methods = useForm({
+    defaultValues: {
+      // All steps' fields
+      name: "",
+      email: "",
+      address: "",
+      city: "",
+      cardNumber: "",
+    },
+  });
+
+  function nextStep() {
+    setStep((s) => s + 1);
+  }
+
+  function prevStep() {
+    setStep((s) => s - 1);
+  }
+
+  function onSubmit(data) {
+    console.log("Final data:", data);
+  }
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={methods.handleSubmit(onSubmit)}>
+        {step === 0 && <PersonalInfoStep onNext={nextStep} />}
+        {step === 1 && <AddressStep onNext={nextStep} onPrev={prevStep} />}
+        {step === 2 && <PaymentStep onPrev={prevStep} />}
+      </form>
+    </FormProvider>
+  );
+}
+
+function PersonalInfoStep({ onNext }) {
+  const { register, trigger } = useFormContext();
+
+  async function handleNext() {
+    const valid = await trigger(["name", "email"]);
+    if (valid) onNext();
+  }
+
+  return (
+    <div>
+      <input {...register("name", { required: true })} />
+      <input {...register("email", { required: true })} />
+      <button type="button" onClick={handleNext}>Next</button>
+    </div>
+  );
+}
+```
+
+Key points:
+- `FormProvider` shares form context with child components
+- `useFormContext` accesses the form in nested components
+- `trigger` validates specific fields before proceeding
+
+---
+
+## Integration with Zod
+
+For complex validation, use Zod with the resolver:
+
+```tsx
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const schema = z.object({
+  email: z.string().email("Invalid email"),
+  password: z.string().min(8, "At least 8 characters"),
+});
+
+type FormData = z.infer<typeof schema>;
+
+function Form() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register("email")} />
+      {errors.email && <span>{errors.email.message}</span>}
+
+      <input type="password" {...register("password")} />
+      {errors.password && <span>{errors.password.message}</span>}
+
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+
+Benefits:
+- Validation rules in one place
+- TypeScript types from schema
+- Reusable schemas (server validation, API validation)
+
+---
+
+## Programmatic Control
+
+### Setting values
+
+```tsx
+const { setValue, getValues, reset } = useForm();
+
+// Set single field
+setValue("email", "new@example.com");
+
+// With validation
+setValue("email", "new@example.com", { shouldValidate: true });
+
+// Get values
+const email = getValues("email");
+const allValues = getValues();
+
+// Reset to defaults
+reset();
+
+// Reset to new values
+reset({ email: "reset@example.com", password: "" });
+```
+
+### Focus management
+
+```tsx
+const { setFocus } = useForm();
+
+// Focus a field
+setFocus("email");
+
+// Focus first error on submit fail
+useForm({
+  shouldFocusError: true, // default
+});
+```
+
+---
+
+## Error Handling Patterns
+
+### Global error message
+
+```tsx
+const { setError, clearErrors } = useForm();
+
+async function onSubmit(data) {
+  try {
+    await submitToApi(data);
+  } catch (error) {
+    setError("root", {
+      type: "server",
+      message: "Something went wrong. Please try again.",
+    });
+  }
+}
+
+// In JSX
+{errors.root && <div className="error">{errors.root.message}</div>}
+```
+
+### Field-level server errors
+
+```tsx
+async function onSubmit(data) {
+  const result = await submitToApi(data);
+
+  if (result.errors) {
+    Object.entries(result.errors).forEach(([field, message]) => {
+      setError(field, { type: "server", message });
+    });
+  }
+}
+```
+
+---
+
+## Performance Tips
+
+1. **Use `mode: "onTouched"`** instead of `onChange` when possible
+2. **Isolate watching components** with `useWatch` instead of `watch`
+3. **Memoize complex components** that receive `register` or `control`
+4. **Use `shouldUnregister: false`** (default) to preserve values of unmounted fields
+
+```tsx
+// Unoptimized: re-renders entire form on every change
+const values = watch();
+
+// Optimized: only this component re-renders
+function ExpensiveComponent({ control }) {
+  const value = useWatch({ control, name: "field" });
+  return <div>{/* uses value */}</div>;
+}
+```
+
+---
+
+## Summary
+
+React Hook Form gives you:
+- Minimal re-renders through uncontrolled inputs
+- Flexible validation (inline rules or Zod schemas)
+- Field arrays for dynamic forms
+- Form context for multi-step wizards
+- Full TypeScript support
+
+Start simple with `register` and `handleSubmit`. Add complexity as your forms grow.
+

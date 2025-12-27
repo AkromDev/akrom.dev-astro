@@ -10,5 +10,20 @@
   },
   {
     "id": "dev"
+  },
+  {
+    "id": "react"
+  },
+  {
+    "id": "forms"
+  },
+  {
+    "id": "typescript"
+  },
+  {
+    "id": "nextjs"
+  },
+  {
+    "id": "zod"
   }
 ]
