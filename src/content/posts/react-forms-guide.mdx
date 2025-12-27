@@ -31,7 +31,7 @@ We'll build a registration form with name, email, and password fields. Right now
   activeFile="/App.js"
 />
 
-The `components.js` and `styles.css` files won't change throughout this guide. They're hidden in later examples so you can focus on the form logic.
+> **Note:** The `components.js` and `styles.css` files won't change throughout this guide. They're hidden in later examples so you can focus on the form logic.
 
 We'll explore different ways to make this form work.
 
@@ -76,13 +76,6 @@ export default function RegistrationForm() {
 }
 ```
 
-**How it works:**
-
-- `FormData` extracts values on submit, no need to track every keystroke
-- `validateForm()` returns `{ field: "message" }` for invalid fields (or empty object if valid)
-- Errors persist while typing and only update on resubmit (we will fix this in the next section)
-- Only `errors` needs state, React re-renders to display them when validation fails
-
 Now display error messages below each input:
 
 ```jsx ins={11} ins={13} ins={15}
@@ -106,6 +99,12 @@ export default function RegistrationForm() {
   );
 }
 ```
+
+**How it works:**
+
+- `FormData` extracts values on submit, no need to track every keystroke
+- `validateForm()` returns `{ field: "message" }` for invalid fields (or empty object if valid)
+- Only `errors` needs state, React re-renders to display them when validation fails
 
 This approach is minimal with just one `useState` and a submit handler. Note that users won't see errors until they click submit, and form doesn't get re-validated until they submit again.
 
