@@ -18,4 +18,10 @@ const { class: className, ...props } = Astro.props;
     padding: 1.5rem;
     overflow: hidden;
   }
+
+  @media (max-width: 640px) {
+    .card {
+      padding: 1rem;
+    }
+  }
 </style>
