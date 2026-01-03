@@ -1,0 +1,537 @@
+---
+title: "Practical Zod: Schema Validation That Makes Sense"
+description: "A hands-on guide to Zod - from basic validations to transforms and refinements. Learn to validate data with confidence."
+image: "../assets/blog/zod.jpg"
+createdAt: 12-29-2025
+draft: false
+tags:
+  - zod
+  - typescript
+  - guide
+---
+
+import CodeSandbox from "../../components/CodeSandbox.astro";
+
+Validating data in JavaScript is messy. You write the same checks repeatedly, types drift from runtime, and error messages are an afterthought.
+
+<a href="https://zod.dev" target="_blank">Zod</a> fixes this. It's a TypeScript-first validation library that defines your schema once and gives you runtime validation plus static types from the same source.
+
+This guide covers practical patterns you'll use daily.
+
+---
+
+## Getting Started
+
+Install Zod:
+
+```bash
+npm install zod
+```
+
+Import and start defining schemas:
+
+```ts
+import { z } from "zod";
+
+const schema = z.string();
+schema.parse("hello"); // ✓ returns "hello"
+schema.parse(123);     // ✗ throws ZodError
+```
+
+That's the core pattern: define a schema, parse data against it.
+
+---
+
+## 1. Primitives
+
+Zod has schemas for all JavaScript primitives:
+
+```ts
+z.string()    // string
+z.number()    // number
+z.boolean()   // boolean
+z.null()      // null
+z.undefined() // undefined
+z.bigint()    // bigint
+z.date()      // Date
+```
+
+Each returns a schema that validates input and infers the correct TypeScript type.
+
+---
+
+## 2. String Validations
+
+Strings are common inputs. Zod provides built-in validators for the patterns you use constantly:
+
+```ts
+// Length constraints
+z.string().min(2, "Too short")
+z.string().max(100, "Too long")
+z.string().length(5, "Must be exactly 5 characters")
+
+// Format validations
+z.string().email("Invalid email")
+z.string().url("Invalid URL")
+z.string().uuid("Invalid UUID")
+
+// Pattern matching
+z.string().regex(/^[A-Z]+$/, "Must be uppercase letters")
+z.string().startsWith("https://")
+z.string().endsWith(".com")
+z.string().includes("@")
+```
+
+Chain them together for complex rules:
+
+```ts
+const username = z
+  .string()
+  .min(3, "Username must be at least 3 characters")
+  .max(20, "Username must be 20 characters or less")
+  .regex(/^[a-z0-9_]+$/, "Only lowercase letters, numbers, and underscores");
+```
+
+Try it out:
+
+<CodeSandbox 
+  files={{
+    "/index.ts": `import { z } from "zod";\n\nconst username = z\n  .string()\n  .min(3, "Username must be at least 3 characters")\n  .max(20, "Username must be 20 characters or less")\n  .regex(/^[a-z0-9_]+$/, "Only lowercase letters, numbers, and underscores");\n\n// Test with different inputs\nconst inputs = ["ab", "valid_user", "Invalid-Name!", "this_username_is_way_too_long_to_be_valid"];\n\ninputs.forEach(input => {\n  const result = username.safeParse(input);\n  if (result.success) {\n    console.log(\`✓ "\${input}" is valid\`);\n  } else {\n    console.log(\`✗ "\${input}": \${result.error.errors[0].message}\`);\n  }\n});`,
+  }}
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  editorHeight={380}
+  dependencies={{ "zod": "^3.24.0" }}
+/>
+
+---
+
+## 3. Number Validations
+
+Numbers have their own set of validators:
+
+```ts
+z.number().int("Must be an integer")
+z.number().positive("Must be positive")
+z.number().negative("Must be negative")
+z.number().min(0, "Must be 0 or greater")
+z.number().max(100, "Must be 100 or less")
+z.number().finite()
+```
+
+A practical example - validating a price:
+
+```ts
+const price = z
+  .number()
+  .positive("Price must be positive")
+  .multipleOf(0.01, "Price can only have 2 decimal places");
+```
+
+---
+
+## 4. Objects
+
+Objects are where Zod shines. Define the shape once, get validation and types:
+
+```ts
+const User = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
+  age: z.number().optional(),
+});
+
+// TypeScript infers this type automatically:
+// { id: number; name: string; email: string; age?: number }
+type User = z.infer<typeof User>;
+```
+
+**Optional and nullable fields:**
+
+```ts
+z.string().optional()   // string | undefined
+z.string().nullable()   // string | null
+z.string().nullish()    // string | null | undefined
+```
+
+**Default values:**
+
+```ts
+const Settings = z.object({
+  theme: z.string().default("dark"),
+  notifications: z.boolean().default(true),
+});
+
+Settings.parse({});
+// → { theme: "dark", notifications: true }
+```
+
+Try building a user schema:
+
+<CodeSandbox 
+  files={{
+    "/index.ts": `import { z } from "zod";\n\nconst User = z.object({\n  id: z.number(),\n  name: z.string().min(2),\n  email: z.string().email(),\n  role: z.enum(["admin", "user", "guest"]).default("user"),\n  preferences: z.object({\n    theme: z.enum(["light", "dark"]).default("dark"),\n    newsletter: z.boolean().default(false),\n  }).optional(),\n});\n\n// Infer the type\ntype User = z.infer<typeof User>;\n\n// Test parsing\nconst validUser = {\n  id: 1,\n  name: "Alice",\n  email: "alice@example.com",\n};\n\nconst result = User.safeParse(validUser);\nif (result.success) {\n  console.log("✓ Valid user:", JSON.stringify(result.data, null, 2));\n} else {\n  console.log("✗ Invalid:", result.error.errors);\n}\n\n// Test with missing email\nconst invalidUser = { id: 2, name: "Bob" };\nconst result2 = User.safeParse(invalidUser);\nif (!result2.success) {\n  console.log("\\n✗ Missing email:", result2.error.errors[0].message);\n}`,
+  }}
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  editorHeight={450}
+  dependencies={{ "zod": "^3.24.0" }}
+/>
+
+---
+
+## 5. Arrays and Tuples
+
+Arrays validate that every element matches a schema:
+
+```ts
+const Tags = z.array(z.string());
+Tags.parse(["react", "typescript"]); // ✓
+Tags.parse(["react", 42]);           // ✗
+
+// With constraints
+z.array(z.string()).min(1, "Need at least one tag")
+z.array(z.string()).max(5, "Too many tags")
+z.array(z.string()).nonempty("Tags cannot be empty")
+```
+
+Tuples validate fixed-length arrays with specific types per position:
+
+```ts
+const Point = z.tuple([z.number(), z.number()]);
+Point.parse([10, 20]); // ✓ returns [number, number]
+```
+
+---
+
+## 6. Unions and Discriminated Unions
+
+For "this OR that" types:
+
+```ts
+// Simple union
+const StringOrNumber = z.union([z.string(), z.number()]);
+
+// Shorthand
+const Id = z.string().or(z.number());
+```
+
+**Discriminated unions** are for tagged types - Zod can optimize validation by checking a discriminator field first:
+
+```ts
+const Result = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("success"), data: z.string() }),
+  z.object({ status: z.literal("error"), message: z.string() }),
+]);
+
+// TypeScript knows which shape it is after checking status
+const result = Result.parse({ status: "success", data: "hello" });
+```
+
+---
+
+## 7. Enums
+
+For a fixed set of allowed values:
+
+```ts
+const Status = z.enum(["pending", "active", "cancelled"]);
+
+Status.parse("active");   // ✓
+Status.parse("invalid");  // ✗
+
+// Extract the type
+type Status = z.infer<typeof Status>;
+// → "pending" | "active" | "cancelled"
+
+// Access the values
+Status.options; // ["pending", "active", "cancelled"]
+```
+
+You can also use native TypeScript enums with `z.nativeEnum()`:
+
+```ts
+enum Role {
+  Admin = "admin",
+  User = "user",
+}
+
+const RoleSchema = z.nativeEnum(Role);
+```
+
+---
+
+## 8. Transforms
+
+Transforms let you modify data during parsing. The input and output types can differ:
+
+```ts
+// Trim whitespace from strings
+const TrimmedString = z.string().trim();
+
+// Convert to lowercase
+const LowerEmail = z.string().email().toLowerCase();
+
+// Parse dates from strings
+const DateFromString = z.string().transform((str) => new Date(str));
+
+// Combine with validation
+const PositiveInt = z
+  .string()
+  .transform((val) => parseInt(val, 10))
+  .pipe(z.number().int().positive());
+```
+
+A practical example - normalizing user input:
+
+<CodeSandbox 
+  files={{
+    "/index.ts": `import { z } from "zod";\n\nconst UserInput = z.object({\n  email: z.string().email().toLowerCase().trim(),\n  name: z.string().trim().transform((name) => {\n    // Capitalize each word\n    return name.split(" ").map(word => \n      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()\n    ).join(" ");\n  }),\n  age: z.string().transform((val) => parseInt(val, 10)).pipe(\n    z.number().int().positive().max(150)\n  ),\n});\n\n// Messy user input\nconst rawInput = {\n  email: "  ALICE@EXAMPLE.COM  ",\n  name: "alice JOHNSON",\n  age: "28",\n};\n\nconst result = UserInput.parse(rawInput);\nconsole.log("Cleaned data:", JSON.stringify(result, null, 2));\n// {\n//   "email": "alice@example.com",\n//   "name": "Alice Johnson",\n//   "age": 28\n// }`,
+  }}
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  editorHeight={400}
+  dependencies={{ "zod": "^3.24.0" }}
+/>
+
+---
+
+## 9. Refinements
+
+Refinements add custom validation logic that can't be expressed with built-in validators:
+
+```ts
+const Password = z
+  .string()
+  .min(8)
+  .refine((val) => /[A-Z]/.test(val), {
+    message: "Must contain an uppercase letter",
+  })
+  .refine((val) => /[0-9]/.test(val), {
+    message: "Must contain a number",
+  });
+```
+
+**Superrefine** gives you more control - you can add multiple errors:
+
+```ts
+const PasswordWithContext = z.string().superRefine((val, ctx) => {
+  if (val.length < 8) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.too_small,
+      minimum: 8,
+      type: "string",
+      inclusive: true,
+      message: "Password must be at least 8 characters",
+    });
+  }
+  if (!/[A-Z]/.test(val)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Must contain an uppercase letter",
+    });
+  }
+  if (!/[0-9]/.test(val)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Must contain a number",
+    });
+  }
+});
+```
+
+Cross-field validation with refinements:
+
+<CodeSandbox 
+  files={{
+    "/index.ts": `import { z } from "zod";\n\nconst SignupForm = z.object({\n  email: z.string().email(),\n  password: z.string().min(8),\n  confirmPassword: z.string(),\n}).refine((data) => data.password === data.confirmPassword, {\n  message: "Passwords don't match",\n  path: ["confirmPassword"], // Error appears on confirmPassword field\n});\n\n// Test matching passwords\nconst valid = SignupForm.safeParse({\n  email: "test@example.com",\n  password: "SecurePass123",\n  confirmPassword: "SecurePass123",\n});\nconsole.log("Matching passwords:", valid.success ? "✓ Valid" : "✗ Invalid");\n\n// Test mismatched passwords\nconst invalid = SignupForm.safeParse({\n  email: "test@example.com",\n  password: "SecurePass123",\n  confirmPassword: "DifferentPass",\n});\n\nif (!invalid.success) {\n  console.log("\\nMismatched passwords:");\n  invalid.error.errors.forEach(err => {\n    console.log(\`  ✗ \${err.path.join(".")}: \${err.message}\`);\n  });\n}`,
+  }}
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  editorHeight={380}
+  dependencies={{ "zod": "^3.24.0" }}
+/>
+
+---
+
+## 10. Error Handling
+
+Zod provides two ways to parse data:
+
+**`.parse()`** - throws on error:
+
+```ts
+try {
+  const user = UserSchema.parse(input);
+  // user is fully typed here
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.log(error.errors);
+  }
+}
+```
+
+**`.safeParse()`** - returns a result object:
+
+```ts
+const result = UserSchema.safeParse(input);
+
+if (result.success) {
+  console.log(result.data); // typed data
+} else {
+  console.log(result.error.errors); // array of issues
+}
+```
+
+`safeParse` is usually better - no try/catch, cleaner control flow.
+
+**Formatting errors for display:**
+
+```ts
+const result = UserSchema.safeParse(input);
+
+if (!result.success) {
+  const formatted = result.error.format();
+  // { 
+  //   email: { _errors: ["Invalid email"] },
+  //   name: { _errors: ["Too short"] }
+  // }
+  
+  // Or flatten to a simple object
+  const flat = result.error.flatten();
+  // {
+  //   formErrors: [],
+  //   fieldErrors: { email: ["Invalid email"], name: ["Too short"] }
+  // }
+}
+```
+
+---
+
+## 11. Type Inference
+
+This is where Zod really pays off. Define once, use everywhere:
+
+```ts
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
+});
+
+// Infer the type from the schema
+type User = z.infer<typeof UserSchema>;
+// → { id: number; name: string; email: string }
+
+// Use it in your code
+function createUser(data: User) {
+  // ...
+}
+```
+
+Your types and validation stay in sync. Change the schema, types update automatically.
+
+For schemas with transforms, you might need input vs output types:
+
+```ts
+const StringToNumber = z.string().transform((v) => parseInt(v, 10));
+
+type Input = z.input<typeof StringToNumber>;  // string
+type Output = z.output<typeof StringToNumber>; // number
+```
+
+---
+
+## 12. Coercion
+
+When validating external data (forms, query params, JSON), values often come as strings. Zod can coerce them:
+
+```ts
+// These convert the input before validating
+z.coerce.string()  // anything → String(x)
+z.coerce.number()  // anything → Number(x)
+z.coerce.boolean() // anything → Boolean(x)
+z.coerce.date()    // anything → new Date(x)
+```
+
+Practical example - parsing URL query parameters:
+
+<CodeSandbox 
+  files={{
+    "/index.ts": `import { z } from "zod";\n\n// Query params come as strings from URLSearchParams\nconst QueryParams = z.object({\n  page: z.coerce.number().int().positive().default(1),\n  limit: z.coerce.number().int().min(1).max(100).default(20),\n  active: z.coerce.boolean().default(true),\n});\n\n// Simulate URL: ?page=3&limit=50&active=false\nconst rawParams = {\n  page: "3",\n  limit: "50", \n  active: "false", // Note: "false" as string\n};\n\nconst params = QueryParams.parse(rawParams);\nconsole.log("Parsed params:", params);\n// { page: 3, limit: 50, active: false }\nconsole.log("Types:", typeof params.page, typeof params.limit, typeof params.active);\n// number number boolean\n\n// Test with missing params (uses defaults)\nconst minimal = QueryParams.parse({});\nconsole.log("\\nWith defaults:", minimal);\n// { page: 1, limit: 20, active: true }`,
+  }}
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  editorHeight={380}
+  dependencies={{ "zod": "^3.24.0" }}
+/>
+
+---
+
+## 13. Extending and Composing Schemas
+
+Zod schemas are composable:
+
+```ts
+const BaseUser = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
+// Extend with additional fields
+const AdminUser = BaseUser.extend({
+  role: z.literal("admin"),
+  permissions: z.array(z.string()),
+});
+
+// Pick specific fields
+const UserPreview = BaseUser.pick({ name: true });
+
+// Omit fields
+const UserWithoutId = BaseUser.omit({ id: true });
+
+// Make all fields optional (for PATCH updates)
+const UserUpdate = BaseUser.partial();
+
+// Make specific fields optional
+const UserDraft = BaseUser.partial({ id: true });
+
+// Merge two schemas
+const Combined = SchemaA.merge(SchemaB);
+```
+
+---
+
+## Putting It Together
+
+Here's a complete example - a user registration schema with all the patterns we've covered:
+
+<CodeSandbox 
+  files={{
+    "/index.ts": `import { z } from "zod";\n\n// Reusable schemas\nconst email = z.string().email().toLowerCase().trim();\nconst password = z\n  .string()\n  .min(8, "Password must be at least 8 characters")\n  .refine((p) => /[A-Z]/.test(p), "Must contain uppercase")\n  .refine((p) => /[a-z]/.test(p), "Must contain lowercase")\n  .refine((p) => /[0-9]/.test(p), "Must contain a number");\n\n// Registration form schema\nconst RegisterSchema = z.object({\n  email,\n  password,\n  confirmPassword: z.string(),\n  name: z.string().min(2).max(50).trim(),\n  birthDate: z.coerce.date().refine(\n    (date) => date < new Date(),\n    "Birth date must be in the past"\n  ),\n  terms: z.literal(true, {\n    errorMap: () => ({ message: "You must accept the terms" }),\n  }),\n}).refine((data) => data.password === data.confirmPassword, {\n  message: "Passwords don't match",\n  path: ["confirmPassword"],\n});\n\ntype RegisterInput = z.infer<typeof RegisterSchema>;\n\n// Test valid input\nconst validInput = {\n  email: "  Alice@Example.COM  ",\n  password: "SecurePass123",\n  confirmPassword: "SecurePass123",\n  name: "  Alice Johnson  ",\n  birthDate: "1995-06-15",\n  terms: true,\n};\n\nconst result = RegisterSchema.safeParse(validInput);\nif (result.success) {\n  console.log("✓ Registration valid!");\n  console.log("Cleaned data:", JSON.stringify(result.data, null, 2));\n} else {\n  console.log("✗ Validation failed:");\n  result.error.errors.forEach((err) => {\n    console.log(\`  - \${err.path.join(".")}: \${err.message}\`);\n  });\n}\n\n// Test invalid input\nconst invalidInput = {\n  email: "not-an-email",\n  password: "weak",\n  confirmPassword: "different",\n  name: "A",\n  birthDate: "2099-01-01",\n  terms: false,\n};\n\nconsole.log("\\n--- Testing invalid input ---");\nconst result2 = RegisterSchema.safeParse(invalidInput);\nif (!result2.success) {\n  console.log("Errors found:");\n  result2.error.errors.forEach((err) => {\n    console.log(\`  ✗ \${err.path.join(".") || "form"}: \${err.message}\`);\n  });\n}`,
+  }}
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  editorHeight={500}
+  dependencies={{ "zod": "^3.24.0" }}
+/>
+
+---
+
+## Key Points
+
+- **Define once, use everywhere.** Schemas give you validation AND TypeScript types from the same source
+- **Use `safeParse` over `parse`.** Cleaner error handling without try/catch
+- **Chain validators** for complex rules: `.string().email().min(5).max(100)`
+- **Transforms normalize data** during parsing - trim, lowercase, parse dates
+- **Refinements handle custom logic** - password strength, cross-field validation
+- **Coercion for external data** - form inputs, query params, JSON payloads
+- **Compose schemas** with `.extend()`, `.pick()`, `.omit()`, `.partial()`
+
+---
+
+Zod removes the friction from validation. Your schemas are readable, your types stay in sync, and your error messages make sense. Start with simple schemas and add complexity only when you need it.
+
+For more patterns, check the <a href="https://zod.dev" target="_blank">official Zod documentation</a>.
+
