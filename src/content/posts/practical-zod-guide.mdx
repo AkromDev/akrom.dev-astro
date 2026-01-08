@@ -102,6 +102,7 @@ Try it out:
   activeFile="/index.ts"
   editorHeight={380}
   dependencies={{ "zod": "^3.24.0" }}
+  consoleOnly={true}
 />
 
 ---
@@ -171,12 +172,13 @@ Try building a user schema:
 
 <CodeSandbox 
   files={{
-    "/index.ts": `import { z } from "zod";\n\nconst User = z.object({\n  id: z.number(),\n  name: z.string().min(2),\n  email: z.string().email(),\n  role: z.enum(["admin", "user", "guest"]).default("user"),\n  preferences: z.object({\n    theme: z.enum(["light", "dark"]).default("dark"),\n    newsletter: z.boolean().default(false),\n  }).optional(),\n});\n\n// Infer the type\ntype User = z.infer<typeof User>;\n\n// Test parsing\nconst validUser = {\n  id: 1,\n  name: "Alice",\n  email: "alice@example.com",\n};\n\nconst result = User.safeParse(validUser);\nif (result.success) {\n  console.log("✓ Valid user:", JSON.stringify(result.data, null, 2));\n} else {\n  console.log("✗ Invalid:", result.error.errors);\n}\n\n// Test with missing email\nconst invalidUser = { id: 2, name: "Bob" };\nconst result2 = User.safeParse(invalidUser);\nif (!result2.success) {\n  console.log("\\n✗ Missing email:", result2.error.errors[0].message);\n}`,
+    "/index.ts": `import { z } from "zod";\n\nconst User = z.object({\n  id: z.number(),\n  name: z.string().min(2),\n  email: z.string().email(),\n  role: z.enum(["admin", "user", "guest"]).default("user"),\n  preferences: z.object({\n    theme: z.enum(["light", "dark"]).default("dark"),\n    newsletter: z.boolean().default(false),\n  }).optional(),\n});\n\n// Infer the type\ntype User = z.infer<typeof User>;\n\n// Test parsing\nconst validUser = {\n  id: 1,\n  name: "Alice",\n  email: "alice@example.com",\n};\n\nconst result = User.safeParse(validUser);\nif (result.success) {\n  console.log("✓ Valid user:", JSON.stringify(result.data, null, 2));\n} else {\n  console.log("✗ Invalid:", result.error.errors);\n}\n\n// Test with missing email\nconst invalidUser = { id: 2, name: "Bob" };\nconst result2 = User.safeParse(invalidUser);\nif (!result2.success) {\n  console.log("✗ Missing email:", result2.error.errors[0].message);\n}`,
   }}
   template="vanilla-ts"
   activeFile="/index.ts"
   editorHeight={450}
   dependencies={{ "zod": "^3.24.0" }}
+  consoleOnly={true}
 />
 
 ---
@@ -287,12 +289,13 @@ A practical example - normalizing user input:
 
 <CodeSandbox 
   files={{
-    "/index.ts": `import { z } from "zod";\n\nconst UserInput = z.object({\n  email: z.string().email().toLowerCase().trim(),\n  name: z.string().trim().transform((name) => {\n    // Capitalize each word\n    return name.split(" ").map(word => \n      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()\n    ).join(" ");\n  }),\n  age: z.string().transform((val) => parseInt(val, 10)).pipe(\n    z.number().int().positive().max(150)\n  ),\n});\n\n// Messy user input\nconst rawInput = {\n  email: "  ALICE@EXAMPLE.COM  ",\n  name: "alice JOHNSON",\n  age: "28",\n};\n\nconst result = UserInput.parse(rawInput);\nconsole.log("Cleaned data:", JSON.stringify(result, null, 2));\n// {\n//   "email": "alice@example.com",\n//   "name": "Alice Johnson",\n//   "age": 28\n// }`,
+    "/index.ts": `import { z } from "zod";\n\nconst UserInput = z.object({\n  email: z.string().trim().toLowerCase().email(),\n  name: z.string().trim().transform((name) => {\n    // Capitalize each word\n    return name.split(" ").map(word => \n      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()\n    ).join(" ");\n  }),\n  age: z.string().transform((val) => parseInt(val, 10)).pipe(\n    z.number().int().positive().max(150)\n  ),\n});\n\n// Messy user input\nconst rawInput = {\n  email: "  ALICE@EXAMPLE.COM  ",\n  name: "alice JOHNSON",\n  age: "28",\n};\n\nconst result = UserInput.parse(rawInput);\nconsole.log("Cleaned data:", JSON.stringify(result, null, 2));\n// {\n//   "email": "alice@example.com",\n//   "name": "Alice Johnson",\n//   "age": 28\n// }`,
   }}
   template="vanilla-ts"
   activeFile="/index.ts"
   editorHeight={400}
   dependencies={{ "zod": "^3.24.0" }}
+  consoleOnly={true}
 />
 
 ---
@@ -351,6 +354,7 @@ Cross-field validation with refinements:
   activeFile="/index.ts"
   editorHeight={380}
   dependencies={{ "zod": "^3.24.0" }}
+  consoleOnly={true}
 />
 
 ---
@@ -463,8 +467,9 @@ Practical example - parsing URL query parameters:
   }}
   template="vanilla-ts"
   activeFile="/index.ts"
-  editorHeight={380}
+  editorHeight={520}
   dependencies={{ "zod": "^3.24.0" }}
+  consoleOnly={true}
 />
 
 ---
@@ -505,15 +510,16 @@ const Combined = SchemaA.merge(SchemaB);
 
 ## Putting It Together
 
-Here's a complete example - a user registration schema with all the patterns we've covered:
+Here's a complete example - a registration form with real-time Zod validation. Try filling it out with invalid data to see the errors:
 
 <CodeSandbox 
   files={{
-    "/index.ts": `import { z } from "zod";\n\n// Reusable schemas\nconst email = z.string().email().toLowerCase().trim();\nconst password = z\n  .string()\n  .min(8, "Password must be at least 8 characters")\n  .refine((p) => /[A-Z]/.test(p), "Must contain uppercase")\n  .refine((p) => /[a-z]/.test(p), "Must contain lowercase")\n  .refine((p) => /[0-9]/.test(p), "Must contain a number");\n\n// Registration form schema\nconst RegisterSchema = z.object({\n  email,\n  password,\n  confirmPassword: z.string(),\n  name: z.string().min(2).max(50).trim(),\n  birthDate: z.coerce.date().refine(\n    (date) => date < new Date(),\n    "Birth date must be in the past"\n  ),\n  terms: z.literal(true, {\n    errorMap: () => ({ message: "You must accept the terms" }),\n  }),\n}).refine((data) => data.password === data.confirmPassword, {\n  message: "Passwords don't match",\n  path: ["confirmPassword"],\n});\n\ntype RegisterInput = z.infer<typeof RegisterSchema>;\n\n// Test valid input\nconst validInput = {\n  email: "  Alice@Example.COM  ",\n  password: "SecurePass123",\n  confirmPassword: "SecurePass123",\n  name: "  Alice Johnson  ",\n  birthDate: "1995-06-15",\n  terms: true,\n};\n\nconst result = RegisterSchema.safeParse(validInput);\nif (result.success) {\n  console.log("✓ Registration valid!");\n  console.log("Cleaned data:", JSON.stringify(result.data, null, 2));\n} else {\n  console.log("✗ Validation failed:");\n  result.error.errors.forEach((err) => {\n    console.log(\`  - \${err.path.join(".")}: \${err.message}\`);\n  });\n}\n\n// Test invalid input\nconst invalidInput = {\n  email: "not-an-email",\n  password: "weak",\n  confirmPassword: "different",\n  name: "A",\n  birthDate: "2099-01-01",\n  terms: false,\n};\n\nconsole.log("\\n--- Testing invalid input ---");\nconst result2 = RegisterSchema.safeParse(invalidInput);\nif (!result2.success) {\n  console.log("Errors found:");\n  result2.error.errors.forEach((err) => {\n    console.log(\`  ✗ \${err.path.join(".") || "form"}: \${err.message}\`);\n  });\n}`,
+    "/App.js": `import { useState } from "react";\nimport { z } from "zod";\nimport "./styles.css";\n\n// Define the schema\nconst RegisterSchema = z.object({\n  name: z.string().min(2, "Name must be at least 2 characters").trim(),\n  email: z.string().email("Invalid email address").toLowerCase().trim(),\n  password: z\n    .string()\n    .min(8, "Password must be at least 8 characters")\n    .refine((p) => /[A-Z]/.test(p), "Must contain an uppercase letter")\n    .refine((p) => /[0-9]/.test(p), "Must contain a number"),\n  confirmPassword: z.string(),\n}).refine((data) => data.password === data.confirmPassword, {\n  message: "Passwords don't match",\n  path: ["confirmPassword"],\n});\n\nexport default function App() {\n  const [formData, setFormData] = useState({\n    name: "",\n    email: "",\n    password: "",\n    confirmPassword: "",\n  });\n  const [errors, setErrors] = useState({});\n  const [touched, setTouched] = useState({});\n  const [success, setSuccess] = useState(false);\n\n  function validateField(name, value) {\n    const partialData = { ...formData, [name]: value };\n    const result = RegisterSchema.safeParse(partialData);\n    if (result.success) return "";\n    const fieldError = result.error.errors.find((e) => e.path[0] === name);\n    return fieldError?.message || "";\n  }\n\n  function handleChange(e) {\n    const { name, value } = e.target;\n    setFormData((prev) => ({ ...prev, [name]: value }));\n    setSuccess(false);\n    if (touched[name]) {\n      setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));\n    }\n  }\n\n  function handleBlur(e) {\n    const { name, value } = e.target;\n    setTouched((prev) => ({ ...prev, [name]: true }));\n    setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));\n  }\n\n  function handleSubmit(e) {\n    e.preventDefault();\n    const result = RegisterSchema.safeParse(formData);\n    \n    if (!result.success) {\n      const newErrors = {};\n      result.error.errors.forEach((err) => {\n        newErrors[err.path[0]] = err.message;\n      });\n      setErrors(newErrors);\n      setTouched({ name: true, email: true, password: true, confirmPassword: true });\n      return;\n    }\n\n    setSuccess(true);\n    setFormData({ name: "", email: "", password: "", confirmPassword: "" });\n    setErrors({});\n    setTouched({});\n  }\n\n  return (\n    <form onSubmit={handleSubmit} className="form">\n      <h2>Create Account</h2>\n      \n      {success && <div className="success">Account created successfully!</div>}\n\n      <div className="field">\n        <input\n          name="name"\n          value={formData.name}\n          onChange={handleChange}\n          onBlur={handleBlur}\n          placeholder="Full Name"\n          className={errors.name ? "input error" : "input"}\n        />\n        {touched.name && errors.name && <span className="error-text">{errors.name}</span>}\n      </div>\n\n      <div className="field">\n        <input\n          name="email"\n          value={formData.email}\n          onChange={handleChange}\n          onBlur={handleBlur}\n          placeholder="Email"\n          className={errors.email ? "input error" : "input"}\n        />\n        {touched.email && errors.email && <span className="error-text">{errors.email}</span>}\n      </div>\n\n      <div className="field">\n        <input\n          name="password"\n          type="password"\n          value={formData.password}\n          onChange={handleChange}\n          onBlur={handleBlur}\n          placeholder="Password"\n          className={errors.password ? "input error" : "input"}\n        />\n        {touched.password && errors.password && <span className="error-text">{errors.password}</span>}\n      </div>\n\n      <div className="field">\n        <input\n          name="confirmPassword"\n          type="password"\n          value={formData.confirmPassword}\n          onChange={handleChange}\n          onBlur={handleBlur}\n          placeholder="Confirm Password"\n          className={errors.confirmPassword ? "input error" : "input"}\n        />\n        {touched.confirmPassword && errors.confirmPassword && (\n          <span className="error-text">{errors.confirmPassword}</span>\n        )}\n      </div>\n\n      <button type="submit" className="button">Sign Up</button>\n    </form>\n  );\n}`,
+    "/styles.css": `* {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 16px;\n  background: #0a0a0a;\n  font-family: system-ui, -apple-system, sans-serif;\n}\n\n#root {\n  width: 100%;\n  display: flex;\n  justify-content: center;\n}\n\n.form {\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n  width: 100%;\n  max-width: 300px;\n  padding: 24px;\n  background: #18181b;\n  border-radius: 10px;\n}\n\n.form h2 {\n  margin: 0 0 4px 0;\n  color: #fafafa;\n  font-size: 18px;\n  font-weight: 600;\n}\n\n.field {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n}\n\n.input {\n  width: 100%;\n  padding: 8px 12px;\n  border: 1px solid #3f3f46;\n  border-radius: 6px;\n  background: #27272a;\n  color: #fafafa;\n  font-size: 13px;\n  transition: border-color 0.2s, box-shadow 0.2s;\n}\n\n.input:focus {\n  outline: none;\n  border-color: #3b82f6;\n  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);\n}\n\n.input.error {\n  border-color: #ef4444;\n}\n\n.input.error:focus {\n  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);\n}\n\n.input::placeholder {\n  color: #71717a;\n}\n\n.error-text {\n  color: #ef4444;\n  font-size: 11px;\n}\n\n.success {\n  background: #166534;\n  color: #bbf7d0;\n  padding: 8px;\n  border-radius: 6px;\n  font-size: 13px;\n  text-align: center;\n}\n\n.button {\n  width: 100%;\n  padding: 8px 14px;\n  background: #2563eb;\n  color: #fff;\n  border: none;\n  border-radius: 6px;\n  font-size: 13px;\n  font-weight: 600;\n  cursor: pointer;\n  transition: background 0.2s;\n  margin-top: 4px;\n}\n\n.button:hover {\n  background: #1d4ed8;\n}`,
   }}
-  template="vanilla-ts"
-  activeFile="/index.ts"
-  editorHeight={500}
+  activeFile="/App.js"
+  visibleFiles={["/App.js", "/styles.css"]}
+  editorHeight={520}
   dependencies={{ "zod": "^3.24.0" }}
 />
 

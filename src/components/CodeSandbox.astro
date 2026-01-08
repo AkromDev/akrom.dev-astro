@@ -11,6 +11,8 @@ interface Props {
   activeFile?: string;
   visibleFiles?: string[];
   dependencies?: Record<string, string>;
+  showConsole?: boolean;
+  consoleOnly?: boolean;
 }
 
 const { 
@@ -21,6 +23,8 @@ const {
   activeFile,
   visibleFiles,
   dependencies = {},
+  showConsole = false,
+  consoleOnly = false,
 } = Astro.props;
 
 const placeholderHeight = editorHeight;
@@ -45,6 +49,8 @@ const placeholderHeight = editorHeight;
     activeFile={activeFile}
     visibleFiles={visibleFiles}
     dependencies={dependencies}
+    showConsole={showConsole}
+    consoleOnly={consoleOnly}
   />
 </div>
 
@@ -135,6 +141,69 @@ const placeholderHeight = editorHeight;
   .sandbox-container :global(.sp-preview-actions button:hover),
   .sandbox-container :global(.sp-preview-actions a:hover) {
     color: #fff;
+  }
+
+  /* Console-only mode styles */
+  .sandbox-container :global(.console-only .console-panel) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .sandbox-container :global(.console-only .console-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: #282a36;
+    border-bottom: 1px solid #30363d;
+    font-size: 12px;
+    color: #99a1b3;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+
+  .sandbox-container :global(.console-only .sp-refresh-button) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #99a1b3;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .sandbox-container :global(.console-only .sp-refresh-button:hover) {
+    color: #f6f7f9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .sandbox-container :global(.console-only .sp-console) {
+    flex: 1;
+  }
+
+  /* Better console text wrapping */
+  .sandbox-container :global(.sp-console) {
+    font-size: 13px;
+  }
+
+  .sandbox-container :global(.sp-console pre),
+  .sandbox-container :global(.sp-console code) {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .sandbox-container :global(.sp-console > div) {
+    overflow-x: hidden !important;
   }
 </style>
 
