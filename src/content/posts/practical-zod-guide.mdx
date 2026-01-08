@@ -34,8 +34,8 @@ Import and start defining schemas:
 import { z } from "zod";
 
 const schema = z.string();
-schema.parse("hello"); // ✓ returns "hello"
-schema.parse(123);     // ✗ throws ZodError
+schema.parse("hello"); // ✅ returns "hello"
+schema.parse(123);     // ❌ throws ZodError
 ```
 
 That's the core pattern: define a schema, parse data against it.
@@ -96,7 +96,7 @@ Try it out:
 
 <CodeSandbox 
   files={{
-    "/index.ts": `import { z } from "zod";\n\nconst username = z\n  .string()\n  .min(3, "Username must be at least 3 characters")\n  .max(20, "Username must be 20 characters or less")\n  .regex(/^[a-z0-9_]+$/, "Only lowercase letters, numbers, and underscores");\n\n// Test with different inputs\nconst inputs = ["ab", "valid_user", "Invalid-Name!", "this_username_is_way_too_long_to_be_valid"];\n\ninputs.forEach(input => {\n  const result = username.safeParse(input);\n  if (result.success) {\n    console.log(\`✓ "\${input}" is valid\`);\n  } else {\n    console.log(\`✗ "\${input}": \${result.error.errors[0].message}\`);\n  }\n});`,
+    "/index.ts": `import { z } from "zod";\n\nconst username = z\n  .string()\n  .min(3, "Username must be at least 3 characters")\n  .max(20, "Username must be 20 characters or less")\n  .regex(/^[a-z0-9_]+$/, "Only lowercase letters, numbers, and underscores");\n\n// Test with different inputs\nconst inputs = ["ab", "valid_user", "Invalid-Name!", "this_username_is_way_too_long_to_be_valid"];\n\ninputs.forEach(input => {\n  const result = username.safeParse(input);\n  if (result.success) {\n    console.log(\`✅ "\${input}" is valid\`);\n  } else {\n    console.log(\`❌ "\${input}": \${result.error.errors[0].message}\`);\n  }\n});`,
   }}
   template="vanilla-ts"
   activeFile="/index.ts"
@@ -172,7 +172,7 @@ Try building a user schema:
 
 <CodeSandbox 
   files={{
-    "/index.ts": `import { z } from "zod";\n\nconst User = z.object({\n  id: z.number(),\n  name: z.string().min(2),\n  email: z.string().email(),\n  role: z.enum(["admin", "user", "guest"]).default("user"),\n  preferences: z.object({\n    theme: z.enum(["light", "dark"]).default("dark"),\n    newsletter: z.boolean().default(false),\n  }).optional(),\n});\n\n// Infer the type\ntype User = z.infer<typeof User>;\n\n// Test parsing\nconst validUser = {\n  id: 1,\n  name: "Alice",\n  email: "alice@example.com",\n};\n\nconst result = User.safeParse(validUser);\nif (result.success) {\n  console.log("✓ Valid user:", JSON.stringify(result.data, null, 2));\n} else {\n  console.log("✗ Invalid:", result.error.errors);\n}\n\n// Test with missing email\nconst invalidUser = { id: 2, name: "Bob" };\nconst result2 = User.safeParse(invalidUser);\nif (!result2.success) {\n  console.log("✗ Missing email:", result2.error.errors[0].message);\n}`,
+    "/index.ts": `import { z } from "zod";\n\nconst User = z.object({\n  id: z.number(),\n  name: z.string().min(2),\n  email: z.string().email(),\n  role: z.enum(["admin", "user", "guest"]).default("user"),\n  preferences: z.object({\n    theme: z.enum(["light", "dark"]).default("dark"),\n    newsletter: z.boolean().default(false),\n  }).optional(),\n});\n\n// Infer the type\ntype User = z.infer<typeof User>;\n\n// Test parsing\nconst validUser = {\n  id: 1,\n  name: "Alice",\n  email: "alice@example.com",\n};\n\nconst result = User.safeParse(validUser);\nif (result.success) {\n  console.log("✅ Valid user:", JSON.stringify(result.data, null, 2));\n} else {\n  console.log("❌ Invalid:", result.error.errors);\n}\n\n// Test with missing email\nconst invalidUser = { id: 2, name: "Bob" };\nconst result2 = User.safeParse(invalidUser);\nif (!result2.success) {\n  console.log("❌ Missing email:", result2.error.errors[0].message);\n}`,
   }}
   template="vanilla-ts"
   activeFile="/index.ts"
@@ -189,8 +189,8 @@ Arrays validate that every element matches a schema:
 
 ```ts
 const Tags = z.array(z.string());
-Tags.parse(["react", "typescript"]); // ✓
-Tags.parse(["react", 42]);           // ✗
+Tags.parse(["react", "typescript"]); // ✅
+Tags.parse(["react", 42]);           // ❌
 
 // With constraints
 z.array(z.string()).min(1, "Need at least one tag")
@@ -202,7 +202,7 @@ Tuples validate fixed-length arrays with specific types per position:
 
 ```ts
 const Point = z.tuple([z.number(), z.number()]);
-Point.parse([10, 20]); // ✓ returns [number, number]
+Point.parse([10, 20]); // ✅ returns [number, number]
 ```
 
 ---
@@ -240,8 +240,8 @@ For a fixed set of allowed values:
 ```ts
 const Status = z.enum(["pending", "active", "cancelled"]);
 
-Status.parse("active");   // ✓
-Status.parse("invalid");  // ✗
+Status.parse("active");   // ✅
+Status.parse("invalid");  // ❌
 
 // Extract the type
 type Status = z.infer<typeof Status>;
@@ -348,7 +348,7 @@ Cross-field validation with refinements:
 
 <CodeSandbox 
   files={{
-    "/index.ts": `import { z } from "zod";\n\nconst SignupForm = z.object({\n  email: z.string().email(),\n  password: z.string().min(8),\n  confirmPassword: z.string(),\n}).refine((data) => data.password === data.confirmPassword, {\n  message: "Passwords don't match",\n  path: ["confirmPassword"], // Error appears on confirmPassword field\n});\n\n// Test matching passwords\nconst valid = SignupForm.safeParse({\n  email: "test@example.com",\n  password: "SecurePass123",\n  confirmPassword: "SecurePass123",\n});\nconsole.log("Matching passwords:", valid.success ? "✓ Valid" : "✗ Invalid");\n\n// Test mismatched passwords\nconst invalid = SignupForm.safeParse({\n  email: "test@example.com",\n  password: "SecurePass123",\n  confirmPassword: "DifferentPass",\n});\n\nif (!invalid.success) {\n  console.log("\\nMismatched passwords:");\n  invalid.error.errors.forEach(err => {\n    console.log(\`  ✗ \${err.path.join(".")}: \${err.message}\`);\n  });\n}`,
+    "/index.ts": `import { z } from "zod";\n\nconst SignupForm = z.object({\n  email: z.string().email(),\n  password: z.string().min(8),\n  confirmPassword: z.string(),\n}).refine((data) => data.password === data.confirmPassword, {\n  message: "Passwords don't match",\n  path: ["confirmPassword"], // Error appears on confirmPassword field\n});\n\n// Test matching passwords\nconst valid = SignupForm.safeParse({\n  email: "test@example.com",\n  password: "SecurePass123",\n  confirmPassword: "SecurePass123",\n});\nconsole.log("Matching passwords:", valid.success ? "✅ Valid" : "❌ Invalid");\n\n// Test mismatched passwords\nconst invalid = SignupForm.safeParse({\n  email: "test@example.com",\n  password: "SecurePass123",\n  confirmPassword: "DifferentPass",\n});\n\nif (!invalid.success) {\n  console.log("Mismatched passwords:");\n  invalid.error.errors.forEach(err => {\n    console.log(\`  ❌ \${err.path.join(".")}: \${err.message}\`);\n  });\n}`,
   }}
   template="vanilla-ts"
   activeFile="/index.ts"
@@ -463,7 +463,7 @@ Practical example - parsing URL query parameters:
 
 <CodeSandbox 
   files={{
-    "/index.ts": `import { z } from "zod";\n\n// Query params come as strings from URLSearchParams\nconst QueryParams = z.object({\n  page: z.coerce.number().int().positive().default(1),\n  limit: z.coerce.number().int().min(1).max(100).default(20),\n  active: z.coerce.boolean().default(true),\n});\n\n// Simulate URL: ?page=3&limit=50&active=false\nconst rawParams = {\n  page: "3",\n  limit: "50", \n  active: "false", // Note: "false" as string\n};\n\nconst params = QueryParams.parse(rawParams);\nconsole.log("Parsed params:", params);\n// { page: 3, limit: 50, active: false }\nconsole.log("Types:", typeof params.page, typeof params.limit, typeof params.active);\n// number number boolean\n\n// Test with missing params (uses defaults)\nconst minimal = QueryParams.parse({});\nconsole.log("\\nWith defaults:", minimal);\n// { page: 1, limit: 20, active: true }`,
+    "/index.ts": `import { z } from "zod";\n\n// Query params come as strings from URLSearchParams\nconst QueryParams = z.object({\n  page: z.coerce.number().int().positive().default(1),\n  limit: z.coerce.number().int().min(1).max(100).default(20),\n  active: z.coerce.boolean().default(true),\n});\n\n// Simulate URL: ?page=3&limit=50&active=false\nconst rawParams = {\n  page: "3",\n  limit: "50", \n  active: "false", // Note: "false" as string\n};\n\nconst params = QueryParams.parse(rawParams);\nconsole.log("Parsed params:", params);\n// { page: 3, limit: 50, active: false }\nconsole.log("Types:", typeof params.page, typeof params.limit, typeof params.active);\n// number number boolean\n\n// Test with missing params (uses defaults)\nconst minimal = QueryParams.parse({});\nconsole.log("With defaults:", minimal);\n// { page: 1, limit: 20, active: true }`,
   }}
   template="vanilla-ts"
   activeFile="/index.ts"
